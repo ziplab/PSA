@@ -1,0 +1,169 @@
+## table 1
+\begin{table*}[!htbp]
+\centering
+\footnotesize
+\caption{\textbf{Quantitative comparison on Wan-series models in training-free videogen experiments.}
+We report similarity metrics (PSNR, SSIM, LPIPS) and perceptual quality measures (Aesthetic Quality (Aes.), Background Consistency (Bkg.), and Imaging Quality (Img.)) from VBench~\cite{huang2023vbenchcomprehensivebenchmarksuite}.
+Latency represents the average generation time per video. For clarity, the \textbf{best} result among all sparse methods under each metric is \textbf{bolded}, and the \textbf{second-best} is \underline{underlined}.}
+
+\vspace{3pt}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{c|c|cccccc|cc}
+\toprule
+\textbf{Model} & \textbf{Method} & \textbf{PSNR}$\uparrow$ & \textbf{SSIM}$\uparrow$ & \textbf{LPIPS}$\downarrow$ & \textbf{Aes.$\uparrow$} & \textbf{Bkg.$\uparrow$} & \textbf{Img.$\uparrow$}  & \textbf{Sparsity} & \textbf{Latency(s)} \\
+\midrule
+
+\multirow{6}{*}{\textbf{Wan 2.1 1.3B}} 
+ & Full   & -- & -- & -- & 0.6489 & 0.9645 & 0.6557 & -- & 327 \\
+  \cline{2-10}
+ & SVG2  & \best{25.21} & \best{0.801} & \underline{0.126} & 0.6185 & \underline{0.9548} & 0.5545 & 0.91 & 187 \\
+ & SVG   & 17.57 & 0.567 & 0.399 & 0.5039 & 0.9444 & 0.5974 & 0.85 & 165 \\
+ & Sparge & 22.83 & 0.736 & 0.177 & 0.6232 & 0.9476 & 0.6409 & 0.90 & 165 \\
+ & STA   & 20.56 & 0.677 & 0.197 & \underline{0.6521} & 0.9419 & \underline{0.6501} & 0.83 & 162 \\
+\rowcolor{rowblue}
+ & PSA(Ours)   & \underline{24.36} & \underline{0.788} & \best{0.121} &\textbf{0.6686} &\textbf{0.9612} & \textbf{0.6607}& 0.91 & 176 \\
+\midrule
+
+\multirow{5}{*}{\makecell{\textbf{Wan 2.2 5B}\\[0.2em]\small (1280 $\times$ 704, 121 frames)}}
+
+ & Full   & -- & -- & -- & 0.6598 & 0.9564 & 0.6547 & -- & 168 \\
+  \cline{2-10}
+ & SVG2  & \textbf{24.25} & \textbf{0.818} & \textbf{0.092} & \underline{0.6495} & \underline{0.9518} & \underline{0.6025} & 0.90 & 149 \\
+ & SVG   & 18.89 & 0.645 & 0.266 & 0.5539 & 0.9386 & 0.5877 & 0.86 & 122 \\
+ & Sparge & 19.53 & 0.660 & 0.229 & 0.5482 & 0.9289 & 0.5650 & 0.89 & 124 \\
+\rowcolor{rowblue}
+ & PSA(Ours)   & \underline{23.03} & \underline{0.794} & \underline{0.096} & \textbf{0.6588} & \textbf{0.9569} & \textbf{0.6438} & 0.89 & 131 \\
+\midrule
+
+\multirow{6}{*}{\textbf{Wan 2.1 14B}} 
+ & Full   & -- & -- & -- & 0.6918 & 0.9639 & 0.6247 & -- & 1548 \\
+ \cline{2-10}
+ & SVG2  & \textbf{24.79} & \textbf{0.807} & \textbf{0.085} & \underline{0.6614} & \underline{0.9439} & 0.5555 & 0.87 & 913 \\
+ & SVG   & 19.84 & 0.649 & 0.300 & 0.5337 & \textbf{0.9501} & 0.5479 & 0.85 & 830 \\
+ & Sparge & 22.19 & 0.737 & 0.182 & 0.6083 & 0.8779 & 0.5977 & 0.88 & 855 \\
+ & STA   & 20.83 & 0.694 & 0.185 & 0.6544 & 0.9399 & \textbf{0.6489} & 0.83 & 815 \\
+\rowcolor{rowblue}
+ & PSA(Ours)   & \underline{23.83} & \underline{0.768} & \underline{0.105} & \textbf{0.6776} & 0.9261 & \underline{0.6400} & 0.88 & 887 \\
+\bottomrule
+\end{tabular}
+}
+\label{tab:videogen-results}
+\vspace{-4pt}
+\end{table*}
+
+detail description:A qualitative comparison of sparse attention mechanisms is shown in \cref{fig:wan2.1_1.3b_sampled_videosl}. All methods use the same text-to-video scene (a couple walking under a red umbrella in the rain) under similar sparsity. STA~\cite{zhang2025fastvideogenerationsliding} exhibits structure jumps and identity swaps across frames; SVG~\cite{xi2025sparsevideogenacceleratingvideo}collapses at high sparsity with random color blocks; SVG2~\cite{yang2025sparsevideogen2acceleratevideo} is more stable but overly smooth with distorted backgrounds; Sparge~\cite{zhang2025spargeattentionaccuratetrainingfreesparse} preserves layout yet shows local color distortions; Full Attention remains high-fidelity but costly. In contrast, PSA at 0.91 sparsity maintains sharp details and temporal coherence (stable contours, saturated umbrella, natural reflections), approaching the dense baseline’s visual quality with far less computation.
+
+\cref{tab:videogen-results} further shows that under comparable high sparsity, PSA consistently surpasses SVG, STA, and Sparge on all similarity metrics (PSNR/SSIM/LPIPS) and on most perceptual axes (Aes./Bkg./Img.) across model sizes. 
+Against the strongest training-free baseline SVG2, PSA delivers \emph{clearly better perceptual quality} at high sparsity---higher Aesthetic and Imaging scores on \emph{all} model sizes ---while keeping similarity metrics within small margins. 
+Together with the visuals in \cref{fig:wan2.1_1.3b_sampled_videosl}, these results indicate that PSA is the \emph{most quality-preserving} sparse attention mechanism at high sparsity among all compared methods. Additional visual comparisons are provided in the appendix.
+
+
+
+
+## table 2
+\begin{table}[h!]
+\centering
+\vspace{-4pt}
+\caption{Combining PSA with TDM on CogVideoX-5B.}
+\label{tab:distillation}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccc}
+\toprule
+\textbf{Method} & \textbf{Sparsity} & \textbf{Sampling Steps} & \textbf{VBench Score} \\
+\midrule
+FullAttn & -- & 50 & 0.819 \\
+Distill-only & -- & \textbf{4} & 0.818 \\
+\textbf{Ours} & $\mathbf{0.85}$ & \textbf{4} & \textbf{0.826} \\
+\bottomrule
+\end{tabular}%
+} 
+\vspace{-2pt}
+\end{table}
+detail description:To explore the generality of PSA and achieve maximum inference acceleration, we combined our method with the \textit{data-free} distillation technique TDM~\cite{luo2025learningfewstepdiffusionmodels,gu2025bladeblocksparseattentionmeets}. We integrated PSA into the student model during the distillation training phase. As shown in~\cref{tab:distillation}, this simple combination achieves a $30.2\times$ denoising time speedup over the original 50-step model, without any loss in generation quality. Our combined approach, using $85\%$ sparsity, achieves the highest VBench score (0.826). This surpasses both the 4-step distilled baseline and even the original 50-step model. This result demonstrates that PSA is a highly compatible plug-and-play module that can be compounded with other methods like distillation to maximize inference efficiency.
+
+
+## table 3
+\begin{table}[h!]
+\centering
+\vspace{-1pt}
+\caption{
+{Comparison of attention mechanisms on Video-MME.}
+% PSA achieves the most balanced performance across short, medium, and long sequences while maintaining competitive sparsity.
+}
+
+\label{tab:video_nderstanding}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Method} & \textbf{Short} & \textbf{Medium} & \textbf{Long} & \textbf{Overall} & \textbf{Sparsity} \\
+\midrule
+Full Attention & \textbf{0.752} & 0.663 & 0.537 & 0.651 & --- \\
+\hline
+XAttention & 0.748 & 0.661 & \textbf{0.544} & 0.651 & 0.58 \\
+SpargeAttention & 0.749 & 0.663 & 0.539 & 0.650 & 0.37 \\
+\hline
+\textbf{PSA(Ours)} & 0.748 & \textbf{0.673} & 0.542 & \textbf{0.654} & \textbf{0.65} \\
+\bottomrule
+\end{tabular}%
+}
+\vspace{-2pt}
+\end{table}
+detail description:On Qwen2.5-VL-7B, PSA delivers the best overall performance on Video-MME~\cite{fu2025videommefirstevercomprehensiveevaluation} under 
+\textbf{the highest sparsity level (0.65)}. As shown in \cref{tab:video_nderstanding}, it matches or exceeds the full baseline 
+across most categories---notably improving the \textit{Medium} and \textit{Long-Video} 
+scores---while remaining competitive on \textit{Short Video}. These results show that 
+PSA preserves (and in some cases improves) video-understanding quality at 
+substantially higher sparsity, demonstrating the strongest quality-retaining 
+sparsity among all compared methods in the training-free setting.
+
+## algorithm 1
+\begin{algorithm}[tb]
+\caption{Computation of PSA}
+\label{alg:psattn}
+\begin{algorithmic}[1]
+\REQUIRE Query blocks $\{Q_i\}_{i=1}^{n_q}$, pyramid KV blocks $\{K_j^h, V_j^h\}_{j=1,h=1}^{n_k,H}$, mask $M$, scale factor $1/\sqrt{d}$
+\ENSURE Output blocks $\{O_i\}_{i=1}^{n_q}$
+\FOR{each query block $Q_i$}
+    \STATE Initialize $o_i \gets 0$, $m_i \gets -\infty$, $l_i \gets 0$
+    \FOR{each key block $K_j$}
+        \STATE $h \gets M_{ij}$
+        \IF{$h = 0$}
+            \STATE \textbf{continue} \COMMENT{Skip pruned block}
+        \ENDIF
+        \STATE $S_{ij} \gets Q_i K_j^{h\top} / \sqrt{d} + (h-1)\ln 2$
+        \STATE $m_{ij} \gets \max(\mathrm{rowmax}(S_{ij}),\, m_i)$
+        \STATE $P_{ij} \gets \exp(S_{ij} - m_{ij})$
+        \STATE $l_{ij} \gets l_i \exp(m_i - m_{ij}) + \mathrm{rowsum}(P_{ij})$
+        \STATE $o_i \gets o_i \exp(m_i - m_{ij}) + P_{ij} V_j^h$
+        \STATE $m_i \gets m_{ij}$,\quad $l_i \gets l_{ij}$
+    \ENDFOR
+    \STATE $O_i \gets o_i / l_i$
+\ENDFOR
+\STATE \textbf{return} $\{O_i\}_{i=1}^{n_q}$
+\end{algorithmic}
+\end{algorithm}
+
+## algorithm 2
+\begin{algorithm}[tb]
+\caption{Multi-Level Mask Assignment}
+\label{alg:mask}
+\begin{algorithmic}[1]
+\REQUIRE Importance map $S \in \mathbb{R}^{n_q \times n_k}$, thresholds $T=\{\tau_1,\dots,\tau_H\}$
+\ENSURE Multi-level mask $M \in \{0,\dots,H\}^{n_q \times n_k}$
+\STATE $M \gets \mathrm{zeros\_like}(S)$
+\FOR{$i = 1$ \textbf{to} $n_q$}
+    \STATE $E_i \gets S_i / \sum_j S_{ij}$ \COMMENT{Normalize row}
+    \STATE $(E_i',\, \pi_i) \gets \mathrm{sort\_desc}(E_i)$
+    \STATE $\hat{E}_i \gets \mathrm{cumsum}(E_i')$
+    \FOR{$j = 1$ \textbf{to} $n_k$}
+        \STATE $j' \gets \pi_i(j)$ \COMMENT{Map to sorted index}
+        \IF{$\hat{E}_{ij'} > \tau_H$}
+            \STATE $M_{ij} \gets 0$
+        \ELSE
+            \STATE $M_{ij} \gets \min \{ t \mid \hat{E}_{ij'} \le \tau_t \}$
+        \ENDIF
+    \ENDFOR
+\ENDFOR
+\STATE \textbf{return} $M$
+\end{algorithmic}
+\end{algorithm}

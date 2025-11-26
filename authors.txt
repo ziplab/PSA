@@ -1,0 +1,41 @@
+\begin{document}
+
+\twocolumn[
+    \icmltitle{PSA: Pyramid Sparse Attention for Efficient Video Understanding and Generation}
+
+
+  % It is OKAY to include author information, even for blind submissions: the
+  % style file will automatically remove it for you unless you've provided
+  % the [accepted] option to the icml2026 package.
+
+  % List of affiliations: The first argument should be a (short) identifier you
+  % will use later to specify author affiliations Academic affiliations
+  % should list Department, University, City, Region, Country Industry
+  % affiliations should list Company, City, Region, Country
+
+  % You can specify symbols, otherwise they are numbered in order. Ideally, you
+  % should not use this facility. Affiliations will be numbered in order of
+  % appearance and this is the preferred way.
+  \icmlsetsymbol{equal}{*}
+
+  \begin{icmlauthorlist}
+    \icmlauthor{Xiaolong Li}{equal,zju}
+    \icmlauthor{Youping Gu}{equal,zju}
+    \icmlauthor{Xi Lin}{zju}
+    \icmlauthor{Weijie Wang}{zju}
+    \icmlauthor{Bohan Zhuang}{zju}
+  \end{icmlauthorlist}
+
+  \icmlaffiliation{zju}{Zhejiang University, Hangzhou, China}
+
+  \icmlcorrespondingauthor{Xiaolong Li}{xiaolong.ziplab@gmail.com}
+  \icmlcorrespondingauthor{Youping Gu}{youpgu71@gmail.com}
+  \icmlcorrespondingauthor{Xi Lin}{erix025@outlook.com}
+  \icmlcorrespondingauthor{Weijie Wang}{wangweijie@zju.edu.cn}
+  %\icmlcorrespondingauthor{Youping Gu}{youpgu71@gmail.com}
+  \icmlcorrespondingauthor{Bohan Zhuang}{bohan.zhuang@gmail.com}
+
+  \icmlkeywords{Sparse Attention, Video Generation, Video Understanding, Efficient Inference}
+
+  \vskip 0.3in
+]

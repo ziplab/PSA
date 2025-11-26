@@ -1,0 +1,95 @@
+
+\section{Introduction}
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=1.0\linewidth]{figures/demo.jpg}
+    \caption{\textbf{Comparison of attention mechanisms under identical compute budget.} 
+All methods use the same input $Q$, $K$, and $V$ tensors extracted from Wan2.1–1.3B~\cite{wan2025wanopenadvancedlargescale} denoising process.
+Computation Pattern (top-left two panels):
+Normalized block-wise FLOPs distribution. The two panels plot query blocks on the horizontal axis and key blocks on the vertical axis. Despite identical FLOPs ($20\%$ full), the proposed Pyramid Sparse Attention (PSA) allows each query block to attend to a much larger portion of KV blocks (70\% active regions), whereas Block Sparse Attention (BSA)~\cite{dao2022flashattentionfastmemoryefficientexact, zhang2025spargeattentionaccuratetrainingfreesparse, xu2025xattentionblocksparseattention} restricts each query to only a narrow subset of KV blocks (20\% active regions), concentrating FLOPs in limited areas.
+Attention Output (bottom row):
+Resulting attention visualizations. PSA closely matches the Full Attention baseline with minimal relative error ($<3\%$), while BSA shows noticeable distortions due to aggressive pruning.}
+
+    \label{fig:psa_comparison}
+    \vspace{-0.5cm}
+\end{figure}
+\label{sec:intro}
+
+
+Recent advances in \emph{video generation} and \emph{video understanding models} have substantially increased sequence lengths, often reaching tens of thousands of tokens in modern diffusion transformers and autoregressive architectures~\cite{vaswani2023attentionneed,peebles2023scalablediffusionmodelstransformers,lin2024videollavalearningunitedvisual,wang2024qwen2vlenhancingvisionlanguagemodels,kong2025hunyuanvideosystematicframeworklarge,wan2025wanopenadvancedlargescale}. 
+However, the quadratic complexity of attention has become a major obstacle to serving these models efficiently. In particular, attention computation dominates the prefill stage in long-context video understanding models and the end-to-end sampling process in video generation. For example, when processing high-resolution, long-duration videos, such as generating a $720$p clip with $81$ frames using the Wan2.1–14B~\cite{wan2025wanopenadvancedlargescale} model, inference on a single NVIDIA H20 GPU can take nearly \textit{two hours}, with attention operations alone accounting for over \textit{80\%} of the total runtime.
+This prohibitive cost underscores the urgent need for more efficient attention mechanisms capable of handling long-context video inputs.
+
+To alleviate this computational burden, recent studies exploit the inherent sparsity of the attention map 
+$P=\mathrm{Softmax}\!\big(QK^\top/\sqrt{d}\big)$, 
+where most elements become negligible after softmax normalization~\cite{deng2024attention}. 
+Sparse attention methods leverage this property by computing only the informative regions of $P$, thereby reducing complexity without sacrificing much accuracy~\cite{zhang2025spargeattentionaccuratetrainingfreesparse,zhang2025fastvideogenerationsliding,yang2025sparsevideogen2acceleratevideo,xi2025sparsevideogenacceleratingvideo,xu2025xattentionblocksparseattention}. 
+In practice, the dominant paradigm combines a \emph{mask generation strategy} with a \emph{Block Sparse Attention (BSA)} kernel that performs attention only on selected blocks for hardware efficiency~\cite{dao2022flashattentionfastmemoryefficientexact,dao2023flashattention2fasterattentionbetter,shah2024flashattention}. 
+This paradigm has proven highly effective in reducing attention cost while preserving generation quality, and a series of methods following this paradigm such as XAttention~\cite{xu2025xattentionblocksparseattention} and SpargeAttention~\cite{zhang2025spargeattentionaccuratetrainingfreesparse}, have demonstrated excellent efficiency–quality trade-offs in large-scale video generation and understanding tasks.
+
+
+
+However, existing block sparse attention mechanisms suffer from a fundamental limitation. 
+At high sparsity levels, their hard binary keep/drop masks severely restrict the key–value region visible to each query, forcing the model to discard many informative areas and leading to significant information loss and performance degradation. 
+Recent work such as Sparse VideoGen(SVG)~\cite{xi2025sparsevideogenacceleratingvideo,yang2025sparsevideogen2acceleratevideo}, Sliding Tile Attention~\cite{zhang2025fastvideogenerationsliding} introduce token permutation to concentrate more important key–value tokens within the limited visible block region of each query, thereby partially alleviating this issue. 
+But this strategy conflicts with the design of the causal attention mask: after permutation, the causal mask becomes highly unstructured, making the algorithm difficult to implement efficiently. 
+Moreover, the additional cost of reordering partially offsets the computational gains it aims to achieve.
+
+
+
+
+
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/ksimilarity.jpg}
+    \caption{\textbf{Adjacent Key Token Cosine Similarity.} High cosine similarity between key tokens (Qwen2.5-VL, Wan2.1-1.3B) motivates hierarchical pooling: nearby visual tokens are highly similar.}
+    \label{fig:adjacent_k_similarity}
+    \vspace{-0.5cm}
+\end{figure}
+
+To this end, we propose \textit{Pyramid Sparse Attention (PSA)}, a module that preserves rich contextual information under low compute budget while remaining compatible with both causal and bi-directional attention masking.
+
+The design of PSA is 
+%further 
+motivated by an empirical observation that adjacent key tokens in visual
+%and video 
+sequences exhibit strong local similarity (~\cref{fig:adjacent_k_similarity}), suggesting that nearby keys can be aggregated by average pooling with minimal information loss. 
+Moreover, a larger pooling size indicates a larger degree of information abstraction. 
+Building on this insight, 
+PSA replaces the binary keep/drop rule in BSA with \emph{multi-level pooled KV representations}, where important KV blocks are assigned to lower (finer) pooling levels and less important blocks to higher (coarser) levels, and the least important blocks are entirely skipped to avoid redundant computation (see ~\cref{fig:framework}), resulting in a smoother computation allocation under the same compute budget, as shown in ~\cref{fig:psa_comparison}.
+
+An intuitive analogy can be drawn to Feature Pyramid Networks (FPNs)~\cite{DBLP:journals/corr/LinDGHHB16} in dense prediction tasks, which assign objects of different scales to distinct feature levels.
+From a quantization perspective, PSA generalizes BSA's 1-bit binary mask into a multi-bit, fixed-point scheme. Here, each non-zero element indicates a specific pooling level for the KV block, while a zero value skips the block entirely, enabling finer-grained compute budget allocation.
+
+
+Moreover, PSA allows each query block to allocate computation adaptively by estimating the importance of each query-key block pair based on attention scores and generating a multi-level attention mask accordingly.
+
+As a result, as shown in ~\cref{fig:psa_comparison}, under \textit{the same compute budget}, each query in PSA attends to about \textit{70\% of the KV blocks} on average, substantially expanding its receptive field, while BSA retains only 20\% of the blocks and rigidly prunes context. Consequently, PSA produces attention outputs that are much closer to full attention, achieving a superior balance between accuracy and efficiency.
+
+
+
+We empirically observe that PSA exhibits broad applicability across both video 
+understanding and video generation tasks. On Video-MME~\cite{fu2025videommefirstevercomprehensiveevaluation} 
+with Qwen2.5-VL~\cite{qwen2025qwen25technicalreport}, PSA matches the full-attention 
+accuracy while achieving the minimal compute budget that preserves quality
+(approximately 35\% full attention FLOPs) among all sparse-attention baselines. 
+For video generation, PSA consistently outperforms prior block-sparse mechanisms in the 
+training-free setting and further improves VBench~\cite{huang2023vbenchcomprehensivebenchmarksuite} 
+scores when combined with the distillation framework 
+TDM~\cite{luo2025learningfewstepdiffusionmodels} on CogVideoX–5B~\cite{hong2022cogvideolargescalepretrainingtexttovideo}, 
+even when limited to only 15\% of the full-attention compute budget.
+These results highlight PSA’s strong compatibility and plug-and-play efficiency across 
+diverse architectures and tasks.
+
+
+
+Our contributions are summarized as follows: 
+(1) \emph{Multi-level retention beyond binary masks:} PSA constructs a pyramid of pooled KV blocks that expands each query’s receptive field without increasing FLOPs, thereby mitigating performance degradation under low compute budget.
+(2) \emph{Hardware-friendly implementation:} 
+We adopt an efficient merge–split kernel design that decouples the logical block size from the hardware tile size, making the processing of dynamically varying KV block sizes introduced by multi-level pooling more efficient.
+This design maintains efficient GPU utilization, supports backpropagation, and is fully compatible with FlashAttention~\cite{dao2023flashattention2fasterattentionbetter,dao2022flashattentionfastmemoryefficientexact}.
+(3) \emph{Versatile applicability:} 
+Owing to our design that does not rely on token reordering, PSA can be seamlessly applied to both video understanding and generation models, consistently outperforming all Block-Sparse Attention based methods under low compute budget conditions.
+
+

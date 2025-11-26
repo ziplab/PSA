@@ -1,0 +1,422 @@
+\newpage
+\appendix
+\onecolumn
+% ======================================
+% Implementation Details of PSA
+% ======================================
+\renewcommand{\thesection}{\Alph{section}}
+\setcounter{section}{0}
+\newpage
+\appendix
+\onecolumn
+
+\renewcommand{\thesection}{\Alph{section}}
+\setcounter{section}{0}
+
+% ======================================
+% Appendix Overview
+% ======================================
+\section{Appendix}
+
+Due to space limitations in the main paper, we provide additional
+technical details, ablation studies, and qualitative comparisons in
+this appendix. The material is organized as follows:
+
+\begin{itemize}
+    \item \textbf{Sec.~B: Implementation Details of PSA.}\\
+    Detailed description of PSA modules, including the cosine similarity-based
+    pooling constraint, block size variants, and importance pooling operators.
+
+    \item \textbf{Sec.~C: Additional Ablations.}\\
+    Comprehensive ablation experiments on cosine similarity, block size,
+    pooling operators, and multi-level allocation strategies across video
+    understanding and video generation tasks.
+
+    \item \textbf{Sec.~D: Additional Visual Comparisons.}\\
+    Extended qualitative examples for the training-free video generation
+    evaluation, following the same layout as the main paper.
+\end{itemize}
+
+The following sections provide the full details and results.
+
+% ======================================
+% B. Implementation Details of PSA
+% ======================================
+
+\section{Implementation Details of PSA}
+\label{sec:supp-impl}
+
+
+
+
+\subsection{Cosine Similarity Based Pooling Constraint}
+\label{sec:supp-sim}
+
+% On top of the importance-driven mask $M$, PSA can optionally apply a
+% \emph{cosine similarity-based pooling constraint} to prevent assigning
+% overly coarse pyramid levels to key blocks whose tokens are not
+% sufficiently similar.  
+% Intuitively, key blocks with high internal similarity can be safely pooled
+% into coarser levels, whereas blocks containing diverse tokens should remain
+% at finer levels.
+On top of the importance driven mask $M$, PSA optionally incorporates a
+cosine similarity based pooling constraint.
+This module is inspired by the cosine similarity constraint design in SpargeAttention~\cite{zhang2025spargeattentionaccuratetrainingfreesparse},
+but we generalize it to our multi-level pooling regime.
+The intuition is that key blocks whose tokens are internally similar can be safely assigned
+to coarser pyramid levels, whereas blocks with heterogeneous tokens should remain at finer levels.
+
+For PSA with $H$ levels, we introduce $H-1$ cosine similarity thresholds
+\[
+T_s=\{\tau_s^{(2)},\tau_s^{(3)},\dots,\tau_s^{(H)}\},
+\]
+where each $\tau_s^{(h)}$ specifies the minimum intra-block cosine similarity required for a block to be eligible for level~$h$. Given these thresholds, we compute the per-block maximum admissible level $L \in \{1,\dots,H\}^{n_k}$ using \cref{alg:sim-constraint}, which evaluates intra-block similarities at strides corresponding to different pooling sizes. A block may enter level~$h$ only if its stride-$2^{h-1}$ similarity exceeds $\tau_s^{(h)}$. The final mask used by PSA is obtained by combining this constraint with the importance-driven mask $M$ via
+\[
+\tilde{M}_{ij} = \min\bigl(M_{ij},\,L_j\bigr),
+\]
+ensuring that no block is assigned a level coarser than what its similarity permits.
+
+In our experiments, we consider a pyramid with $H=4$ levels and use different similarity thresholds $(\tau_2,\tau_3,\tau_4)$ depending on the task. For Video-MME, we adopt thresholds of $(0.75,\,0.70,\,0.70)$, while for the video generation preset \textit{PSA (sim)} in Table~\ref{tab:videogen-sim-ablation}, we use $(0.70,\,0.65,\,0.60)$. The \textit{no-sim} variant is obtained by setting all thresholds to $-1$, which yields $L_j \equiv H$ and disables the similarity constraint entirely. Conversely, the \textit{1-level} variant sets all thresholds to $1$, enforcing $L_j = 1$ for all blocks and collapsing the multi-level structure into a single fine-grained level.
+
+\begin{algorithm}[t]
+\caption{Cosine Similarity-Based Pooling Level Constraint}
+\label{alg:sim-constraint}
+\begin{algorithmic}
+  \STATE {\bfseries Input:} key blocks $\{K_j\}_{j=1}^{n_k}$, thresholds $\tau_s^{(2)}, \dots, \tau_s^{(H)}$
+  \STATE {\bfseries Output:} maximum admissible levels $L \in \{1,\dots,H\}^{n_k}$
+  \STATE Initialize $L_j \gets 1$ for all $j$
+  \FOR{$j = 1$ {\bfseries to} $n_k$}
+    \STATE Interpret $K_j$ as a tensor in $\mathbb{R}^{B \times n_{\text{head}} \times b_k \times d}$
+    \FOR{$h = 2$ {\bfseries to} $H$}
+      \STATE Compute $\text{sim}_h(j)$ as the mean cosine similarity of stride-$2^{h-1}$ pairs in $K_j$
+      \IF{$\text{sim}_h(j) > \tau_s^{(h)}$}
+        \STATE $L_j \gets \max(L_j,\,h)$
+      \ENDIF
+    \ENDFOR
+  \ENDFOR
+  \STATE \textbf{return} $L$
+\end{algorithmic}
+\end{algorithm}
+
+
+\subsection{Block Size and Pooling Variants}
+
+The query and key block sizes determine the granularity at which importance scores and masks are computed, and are conceptually independent of the hardware tile sizes used within the kernel implementation. Owing to the decoupled block-tile design introduced in \cref{sec:kernel-design}, PSA can employ moderate block sizes $(b_q, b_k)$ (e.g., $(32,32)$, $(64,64)$, $(128,64)$) while still achieving relatively high tensor-core utilization.
+
+To examine the role of the pooling operator in the importance definition (\cref{sec:method-331}), we additionally evaluate a \emph{mean-pooling} variant that replaces the max operator with an average over the sampled attention scores, while keeping all other components (sampling, permutation, mask generation, and similarity constraint) identical. The corresponding ablation results are shown in Table~\ref{tab:blocksize-pooling-ablation}. 
+
+Unless otherwise noted, all video generation experiments in this appendix are performed on Wan2.1-1.3B at 480p under the same training-free setup as in the main paper, with sparse attention enabled after the first $25\%$ of sampling steps and sparsity reported as FLOP-equivalent sparsity relative to full attention.
+
+
+% ======================================
+% Additional Ablations
+% ======================================
+\section{Additional Ablations}
+\label{sec:supp-ablation}
+
+\subsection{Cosine Similarity (Video Understanding)}
+
+We first evaluate the cosine similarity-based pooling constraint in the
+video understanding setting.
+Table~\ref{tab:vla-sim-ablation} compares a dense FlashAttention2 baseline with two PSA variants on Video-MME, where all sparse variants are matched at
+approximately $0.65$ FLOP-equivalent sparsity.
+
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3pt}
+\caption{Effect of the cosine similarity constraint on Video-MME.
+All sparse variants are matched at $\sim 0.65$ FLOP-equivalent sparsity.}
+\label{tab:vla-sim-ablation}
+\begin{tabular}{lcccc}
+\toprule
+Method      & Short & Medium & Long  & Overall \\
+\midrule
+FA2 (dense) & 0.752 & 0.663  & 0.537 & 0.651 \\
+\midrule
+PSA w/o sim & 0.747 & 0.667  & 0.529 & 0.647 \\
+PSA w/ sim  & \textbf{0.748} & \textbf{0.673}  & \textbf{0.542 }& \textbf{0.654} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Here, \textit{PSA w/o sim} uses only the importance-based multi-level
+mask $M$, while \textit{PSA w/ sim} additionally applies the
+similarity-based cap $L$ from Alg.~\ref{alg:sim-constraint}.
+Under the same sparsity budget, enabling the constraint improves the
+overall Video-MME score from $0.647$ to $0.654$.
+
+\subsection{Cosine Similarity (Video Generation)}
+\label{sec:supp-sim-videogen}
+
+We next investigate the cosine similarity constraint in the video generation
+setting.
+Table~\ref{tab:videogen-sim-ablation} compares three presets that share the same
+PSA framework but differ in how multi-level pooling is assigned and how the
+similarity thresholds are used.
+
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3pt}
+\caption{Ablation on the cosine similarity constraint for video
+generation (Wan2.1-1.3B, 480p). All presets operate at comparable
+FLOP-equivalent sparsity.}
+\label{tab:videogen-sim-ablation}
+\begin{tabular}{lcccc}
+\toprule
+Preset        & Sparsity $\uparrow$ & PSNR $\uparrow$ & SSIM $\uparrow$ & LPIPS $\downarrow$ \\
+\midrule
+PSA (sim)     & 0.80 & 23.71 & 0.8615 & 0.1086 \\
+PSA (no-sim)  & 0.79 & 23.36 & 0.8556 & 0.1186 \\
+PSA (1-level) & 0.71 & 24.42 & 0.8787 & 0.0960 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{PSA (sim).}
+This preset adopts a more aggressive importance-based allocation in
+order to maintain a FLOP-equivalent sparsity close to $0.8$ once the
+similarity cap is applied.
+Specifically, the thresholds $T$ in mask generation are set to $T=\{0.5,0.7,0.8,0.9\}$, together with similarity thresholds
+$T_s=\{0.7, 0.65, 0.6\}$.
+Since the cosine constraint may locally force heterogeneous KV blocks
+to revert to finer levels, this more progressive allocation ensures
+that the global sparsity remains in the target range while still
+avoiding the assignment of coarse pooling to blocks whose neighboring tokens are not sufficiently similar.
+
+\textbf{PSA (no-sim).}
+To isolate the effect of the similarity constraint, we use a more
+conservative importance-based assignment with thresholds
+$T=\{0.7,0.8,0.9,0.9\}$, but disable the cosine cap by setting
+$T_s=\{-1,-1,-1\}$.
+This keeps a larger fraction of blocks at the finest level $h=1$ and
+slightly reduces sparsity (0.79 vs.\ 0.80), yet all blocks are assigned
+purely based on importance scores without checking whether a given KV
+block is internally homogeneous enough to tolerate high-level pooling.
+
+\textbf{PSA (1-level).}
+Finally, \textit{PSA (1-level)} uses the same importance-based mask
+ratios as \textit{PSA (no-sim)}, but sets all similarity thresholds to
+$T_s=\{1,1,1\}$ so that the cosine cap always forces $L_j=1$ for any kept block.
+As a result, the combined mask $\tilde{M}$ degenerates to a PSA with $H=1$, i.e., no pooling is applied and all kept blocks remain at the finest resolution.
+This configuration therefore has the highest compute cost among the
+three and serves as an upper bound on reconstruction quality for this
+importance pattern.
+
+Under comparable sparsity budgets, \textit{PSA (sim)} achieves a better
+quality--sparsity trade-off than the purely importance-driven
+\textit{PSA (no-sim)}, indicating that the cosine constraint helps
+allocate coarse pooling more selectively: it avoids assigning high
+pyramid levels to KV blocks whose tokens are not poolable, thereby
+reducing approximation error at fixed sparsity.
+Meanwhile, \textit{PSA (1-level)} confirms that further quality gains
+are possible if we completely abandon pooling and pay a significantly
+higher compute cost, providing a useful reference point for the
+performance/efficiency envelope of PSA.
+
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\caption{Ablation on block size and importance pooling for video
+generation (Wan2.1-1.3B, 480p). All presets operate at an effective
+sparsity of $0.8$.}
+\label{tab:blocksize-pooling-ablation}
+\begin{tabular}{ccccc}
+\toprule
+$(b_q, b_k)$ & Pool & PSNR $\uparrow$ & SSIM $\uparrow$ & LPIPS $\downarrow$ \\
+\midrule
+(128, 128) & Max  & 21.43 & 0.8475 & 0.1131 \\
+(128, 128) & Mean & 21.08 & 0.8337 & 0.1257 \\
+(32,  32)  & Max  & 21.64 & 0.8529 & 0.1102 \\
+(32,  32)  & Mean & 21.71 & 0.8515 & 0.1101 \\
+(64,  64)  & Max  & 21.55 & 0.8526 & 0.1099 \\
+(64,  64)  & Mean & 21.56 & 0.8438 & 0.1179 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\subsection{Block Size and Importance Pooling}
+\label{sec:supp-ablation-pooling}
+
+% We finally ablate the logical block size $(b_q,b_k)$ and the pooling
+% operator used in importance estimation under a fixed sparsity budget.
+% All experiments in Table~\ref{tab:blocksize-pooling-ablation} are
+% performed on Wan2.1-1.3B at 480p in the training-free setting, with
+% effective sparsity fixed at $0.8$.
+
+In this part, we ablate the logical block size $(b_q,b_k)$ and the pooling
+operator used {inside the importance estimation step} under a fixed
+sparsity budget.  
+In PSA’s default formulation (\cref{sec:method-331}), the block
+importance score is computed as
+\[
+S_{ij} = \max\!\left(\mathrm{Softmax}\!\left(
+    \frac{\tilde{Q}_i \tilde{K}_j^\top}{\sqrt d}
+\right)\right),
+\]
+i.e., using {max-pooling} over the sampled token-pair attention
+weights.  
+In Table~\ref{tab:blocksize-pooling-ablation}, we ablate this choice by
+replacing the outer ``max'' with a {mean} operator:
+\[
+S_{ij}^{\text{mean}}
+= \mathrm{mean}\!\left(\mathrm{Softmax}\!\left(
+    \frac{\tilde{Q}_i \tilde{K}_j^\top}{\sqrt d}
+\right)\right),
+\]
+while keeping every other component (sampling strategy, sparsity,
+mask-generation rule, and multi-level allocation) unchanged.
+
+At a fixed sparsity of $0.8$, PSA is relatively robust to the choice between
+max- and mean-based importance pooling.
+Max-pooling yields slightly higher PSNR/SSIM at $(128,128)$ and
+$(64,64)$, while mean-pooling performs comparably at $(32,32)$.
+Smaller block sizes—such as $(32,32)$—consistently yield better generation quality, as the finer partitioning more precisely isolates high-importance regions in the attention map, reducing approximation errors under the same sparsity budget.
+
+\subsection{Multi-Level Allocation Strategy}
+\label{sec:supp-multilevel}
+
+Finally, we ablate the effect of the multi-level allocation strategy used by the quantile-based method. In this experiment, we fix all other hyper-parameters (block size, overall FLOP-equivalent sparsity, similarity constraint, and sampling strategy) and vary only how KV blocks are distributed across pyramid levels. All runs are conducted on Wan2.1-1.3B at 480p in the same training-free setting as above, with sparse attention enabled after the first \(25\%\) of sampling steps and the compute budget kept at approximately \(0.25\times\) full-attention FLOPs. We report the \emph{KV coverage ratio}, defined as the fraction of KV blocks that are retained (i.e., assigned to levels \(h>0\)); 
+
+For clarity, we define five \emph{PSA presets}, denoted \textbf{PSA-1} to \textbf{PSA-5}, which all share the same compute budget but differ in how they allocate KV blocks across the pyramid levels. In this ablation we use three non-dropped levels \(h=1,2,3\) (with \(h=1\) the finest and \(h=3\) the coarsest), and a dropped level \(h=0\). The percentage of blocks assigned to each level, together with the resulting KV coverage, is summarized in Table~\ref{tab:psa-presets}.
+
+\begin{table}[t]
+\centering
+\caption{
+PSA presets: percentage of KV blocks per level.
+L1/L2/L3 correspond to $h=1,2,3$; Drop corresponds to $h=0$.
+}
+\label{tab:psa-presets}
+\setlength{\tabcolsep}{4pt} % tighten columns for two-column layout
+\begin{tabular}{c|cccc|c}
+\toprule
+\textbf{Preset} 
+& \textbf{L1} 
+& \textbf{L2} 
+& \textbf{L3} 
+& \textbf{Drop} 
+& \textbf{Coverage} \\
+\midrule
+PSA-1 & 25\% & 0\%  & 0\%  & 75\% & 0.25 \\
+PSA-2 & 0\%  & 0\%  & 100\% & 0\% & 1.00 \\
+PSA-3 & 15\% & 10\% & 20\% & 55\% & 0.45 \\
+PSA-4 & 10\% & 20\% & 20\% & 50\% & 0.50 \\
+PSA-5 & 10\% & 10\% & 40\% & 40\% & 0.60 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The quantitative results of this ablation are reported in Table~\ref{tab:multilevel-strategy-ablation}. All presets share the same logical block size \((b_q,b_k)=(128,64)\) and \emph{do not} enable the cosine similarity constraint, so any performance differences can be attributed solely to the multi-level allocation strategy.
+
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\caption{Ablation on the multi-level allocation strategy for PSA on
+Wan2.1--1.3B, 480p. We vary only how blocks are distributed across
+pyramid levels (PSA-1 to PSA-5), while keeping the FLOP-equivalent
+compute budget (about \(0.25\times\) full attention), block size, and
+all other settings fixed.
+``KV coverage'' denotes the fraction of KV blocks that are kept
+(\(h>0\)).}
+\label{tab:multilevel-strategy-ablation}
+\begin{tabular}{lcccc}
+\toprule
+Preset & KV coverage $\uparrow$ & PSNR $\uparrow$ & SSIM $\uparrow$ & LPIPS $\downarrow$ \\ 
+\midrule
+PSA-1 & 0.25 & 20.94 & 0.8365 & 0.1286 \\
+PSA-2 & 1.00 & 14.03 & 0.3447 & 0.8445 \\
+PSA-3 & 0.45 & \textbf{22.16} & \textbf{0.8752} & \textbf{0.1004} \\
+PSA-4 & 0.50 & 22.13 & 0.8683 & 0.1045 \\
+PSA-5 & 0.60 & 21.94 & 0.8632 & 0.1070 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Among these variants, PSA-2---which keeps {all} blocks but collapses them to a single coarse level to stay within the same FLOP budget---leads to severe degradation in all metrics. This shows that, under a fixed compute budget, concentrating almost all computation on one very coarse level yields poor reconstructions—even with maximal KV coverage—because the overly coarse KV representations dominate the performance degradation.
+
+PSA-1, which preserves only a small portion of blocks at the finest representation and drops all others, performs worse than the multi-level strategies. This shows that allocating all compute to a few fine blocks, without using intermediate levels, severely restricts the effective receptive field for each query block and thus leads to degraded performance.
+
+
+
+
+In contrast, the more balanced multi-level allocations in PSA-3/4/5
+achieve consistently higher PSNR/SSIM and lower LPIPS at the same
+FLOP-equivalent cost.
+These strategies jointly trade off {where} to keep fine-grained
+representations and {how much} area to cover with coarser
+representations, instead of over-committing to a single level.
+PSA-3 offers the best overall trade-off and is therefore adopted as our
+default multi-level strategy in the main video generation experiments.
+This ablation supports our design choice that, under a fixed compute
+budget, extremely skewed mask distributions (either too many dropped
+blocks or too many heavily pooled blocks) hurt quality, whereas a
+balanced allocation across multiple pyramid levels yields superior
+performance at similar sparsity.
+Determining the \emph{optimal} allocation strategy, however, remains an
+open question and is a promising direction for further exploration.
+
+
+\section{Additional Visual Comparisons}
+This section provides additional qualitative comparisons for \cref{traingfreevideogen}. 
+Each figure follows the same layout as the examples in the main paper.
+
+% --------------------- Prompt 001 ---------------------
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\textwidth]{figures/gallery/prompt001comparison.jpg}
+    \caption{
+A plane takes off over a city skyline; cut to a graffiti-covered steam train pulling into a station with billowing smoke. Cinematic colors and motion.
+    }
+    \label{fig:prompt001_comparison}
+\end{figure*}
+
+% --------------------- Prompt 003 ---------------------
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\textwidth]{figures/gallery/prompt003comparison.jpg}
+    \caption{
+A lightning bolt strikes the Eiffel Tower, illuminating its metal frame against swirling dark storm clouds. A low-angle view highlights the tower’s grandeur as the electric flash casts dramatic shadows.
+    }
+    \label{fig:prompt003_comparison}
+\end{figure*}
+
+% --------------------- Prompt 004 ---------------------
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\textwidth]{figures/gallery/prompt004comparison.jpg}
+    \caption{
+A vintage school bus with retro decals turns a dusty rural corner at sunset. Warm golden light fills the scene as children inside read and play, and the focused driver steers through the tight bend. Low-angle, nostalgic cinematography with rolling hills in the background.
+    }
+    \label{fig:prompt004_comparison}
+\end{figure*}
+
+% --------------------- Prompt 006 ---------------------
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\textwidth]{figures/gallery/prompt006comparison.jpg}
+    \caption{
+A rider on a sleek black motorcycle weaves through neon-lit city streets at night, wearing a leather jacket and helmet. Dynamic shots follow their smooth maneuvers through traffic, with vibrant signs and skyscrapers creating an intense urban atmosphere.
+    }
+    \label{fig:prompt006_comparison}
+\end{figure*}
+
+% --------------------- Prompt 007 ---------------------
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\textwidth]{figures/gallery/prompt007comparison.jpg}
+    \caption{
+A cheerful hot dog vendor pushes a colorful cart down a sunny pastel street as a smiling woman in a floral dress chats with passersby. Balloons, flowers, and lively vendors create a bright, carefree summer vibe.
+    }
+    \label{fig:prompt007_comparison}
+\end{figure*}
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\textwidth]{figures/gallery/prompt008comparison.jpg}
+    \caption{
+    A puzzled panda student with a calculus book in a warm, dimly lit classroom, surrounded by desks, books, and attentive classmates.
+    }
+    \label{fig:prompt008_comparison}
+\end{figure*}

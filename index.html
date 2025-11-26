@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PSA: Pyramid Sparse Attention for Efficient Video Understanding and Generation</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- MathJax -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: {
+                fontCache: 'global'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+    <!-- Custom Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Segoe UI', 'Roboto', 'sans-serif'],
+                        mono: ['SF Mono', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+                    },
+                    backdropBlur: {
+                        '3xl': '64px',
+                        '4xl': '96px'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Spring Physics Easing */
+        :root {
+            --spring-easing: cubic-bezier(0.16, 1, 0.3, 1);
+            --spring-duration: 0.8s;
+        }
+
+        /* Organic Fluid Background Orbs */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.6;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .orb-1 {
+            width: 600px;
+            height: 600px;
+            background: linear-gradient(135deg, #6B7280 0%, #9CA3AF 100%);
+            top: -200px;
+            left: -100px;
+            animation-delay: 0s;
+        }
+
+        .orb-2 {
+            width: 500px;
+            height: 500px;
+            background: linear-gradient(135deg, #60A5FA 0%, #93C5FD 100%);
+            top: 30%;
+            right: -150px;
+            animation-delay: -7s;
+        }
+
+        .orb-3 {
+            width: 450px;
+            height: 450px;
+            background: linear-gradient(135deg, #818CF8 0%, #A5B4FC 100%);
+            bottom: -100px;
+            left: 20%;
+            animation-delay: -14s;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translate(0, 0) scale(1) rotate(0deg);
+            }
+            25% {
+                transform: translate(50px, -30px) scale(1.05) rotate(5deg);
+            }
+            50% {
+                transform: translate(-20px, 40px) scale(0.95) rotate(-5deg);
+            }
+            75% {
+                transform: translate(-40px, -20px) scale(1.02) rotate(3deg);
+            }
+        }
+
+        /* Glass Card Styles */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(64px);
+            -webkit-backdrop-filter: blur(64px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow:
+                0 8px 32px rgba(99, 102, 241, 0.1),
+                0 2px 8px rgba(0, 0, 0, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+
+        .glass-card-dark {
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(64px);
+            -webkit-backdrop-filter: blur(64px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow:
+                0 8px 32px rgba(99, 102, 241, 0.15),
+                0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Pill Button Styles */
+        .pill-btn {
+            transition: all var(--spring-duration) var(--spring-easing);
+        }
+
+        .pill-btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 10px 40px rgba(99, 102, 241, 0.2);
+        }
+
+        /* Blur Reveal Animation */
+        @keyframes blurReveal {
+            0% {
+                opacity: 0;
+                filter: blur(10px);
+                transform: translateY(10px);
+            }
+            100% {
+                opacity: 1;
+                filter: blur(0);
+                transform: translateY(0);
+            }
+        }
+
+        .blur-reveal {
+            animation: blurReveal 0.8s var(--spring-easing) forwards;
+        }
+
+        .blur-reveal-delay-1 { animation-delay: 0.1s; opacity: 0; }
+        .blur-reveal-delay-2 { animation-delay: 0.2s; opacity: 0; }
+        .blur-reveal-delay-3 { animation-delay: 0.3s; opacity: 0; }
+        .blur-reveal-delay-4 { animation-delay: 0.4s; opacity: 0; }
+        .blur-reveal-delay-5 { animation-delay: 0.5s; opacity: 0; }
+
+        /* Text Blur-in Effect for Chat */
+        @keyframes textBlurIn {
+            0% {
+                opacity: 0;
+                filter: blur(8px);
+            }
+            100% {
+                opacity: 1;
+                filter: blur(0);
+            }
+        }
+
+        .text-blur-in {
+            animation: textBlurIn 0.3s ease-out forwards;
+        }
+
+        /* Floating Badge */
+        .speed-badge {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(16, 185, 129, 0.5);
+            }
+        }
+
+        /* Table Styles - Modern Booktabs */
+        .booktabs-table {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .booktabs-table thead tr {
+            border-top: 2px solid #374151;
+            border-bottom: 1px solid #374151;
+        }
+
+        .booktabs-table tbody tr:last-child {
+            border-bottom: 2px solid #374151;
+        }
+
+        .booktabs-table tbody tr {
+            transition: background-color 0.2s ease;
+        }
+
+        .booktabs-table tbody tr:hover {
+            background-color: rgba(99, 102, 241, 0.05);
+        }
+
+        .booktabs-table .highlight-row {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+
+        .booktabs-table .highlight-row:hover {
+            background-color: rgba(59, 130, 246, 0.15);
+        }
+
+        /* Algorithm/Pseudocode Styles */
+        .algorithm-block {
+            font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+
+        .algorithm-block .line-number {
+            color: #9CA3AF;
+            user-select: none;
+            width: 2rem;
+            text-align: right;
+            padding-right: 1rem;
+        }
+
+        .algorithm-block .keyword {
+            color: #7C3AED;
+            font-weight: 600;
+        }
+
+        .algorithm-block .comment {
+            color: #6B7280;
+            font-style: italic;
+        }
+
+        .algorithm-block .function {
+            color: #2563EB;
+        }
+
+        /* Bento Grid */
+        .bento-grid {
+            display: grid;
+            gap: 1.5rem;
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        @media (max-width: 768px) {
+            .bento-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Spinner */
+        .spinner {
+            border: 3px solid rgba(99, 102, 241, 0.2);
+            border-top-color: #6366F1;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Section transitions */
+        .section-fade {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s var(--spring-easing);
+        }
+
+        .section-fade.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Video container styling */
+        .video-container {
+            background: linear-gradient(135deg, #1F2937 0%, #111827 100%);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        /* Chat bubble */
+        .chat-bubble {
+            max-width: 80%;
+        }
+
+        .chat-bubble.user {
+            background: linear-gradient(135deg, #6366F1 0%, #818CF8 100%);
+            color: white;
+            margin-left: auto;
+        }
+
+        .chat-bubble.assistant {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 text-gray-900 overflow-x-hidden">
+
+    <!-- Animated Background Orbs -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="relative z-10">
+
+        <!-- Hero Section -->
+        <section class="min-h-screen flex items-center justify-center px-6 py-20">
+            <div class="max-w-5xl mx-auto text-center">
+                <!-- Title -->
+                <h1 class="blur-reveal text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6">
+                    <span class="font-light text-gray-600">Pyramid</span>
+                    <br>
+                    <span class="bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                        Sparse Attention
+                    </span>
+                </h1>
+
+                <!-- Subtitle -->
+                <p class="blur-reveal blur-reveal-delay-1 text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto mb-8 leading-relaxed">
+                    A versatile sparse attention module for efficient video understanding and generation
+                </p>
+
+                <!-- Authors -->
+                <div class="blur-reveal blur-reveal-delay-2 mb-10">
+                    <div class="flex flex-wrap justify-center gap-x-6 gap-y-2 text-lg text-gray-700 mb-3">
+                        <span class="font-medium">Xiaolong Li<sup class="text-indigo-500">*</sup></span>
+                        <span class="font-medium">Youping Gu<sup class="text-indigo-500">*</sup></span>
+                        <span class="font-medium">Xi Lin</span>
+                        <span class="font-medium">Weijie Wang</span>
+                        <span class="font-medium">Bohan Zhuang</span>
+                    </div>
+                    <p class="text-gray-500">
+                        Zhejiang University, Hangzhou, China
+                    </p>
+                    <p class="text-gray-400 text-sm mt-2">
+                        <sup class="text-indigo-500">*</sup> Equal Contribution
+                    </p>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="blur-reveal blur-reveal-delay-3 flex flex-wrap justify-center gap-4">
+                    <a href="#" class="pill-btn glass-card px-8 py-4 rounded-full flex items-center gap-3 text-gray-800 font-medium hover:bg-white/80">
+                        <i class="fa-solid fa-file-pdf text-red-500"></i>
+                        Paper
+                    </a>
+                    <a href="#" class="pill-btn glass-card px-8 py-4 rounded-full flex items-center gap-3 text-gray-800 font-medium hover:bg-white/80">
+                        <i class="fa-brands fa-github"></i>
+                        Code
+                    </a>
+                    <a href="#" class="pill-btn glass-card px-8 py-4 rounded-full flex items-center gap-3 text-gray-800 font-medium hover:bg-white/80">
+                        <i class="fa-solid fa-play text-indigo-500"></i>
+                        Demo
+                    </a>
+                    <a href="#" class="pill-btn glass-card px-8 py-4 rounded-full flex items-center gap-3 text-gray-800 font-medium hover:bg-white/80">
+                        <i class="fa-solid fa-database text-emerald-500"></i>
+                        Model Weights
+                    </a>
+                </div>
+
+                <!-- Scroll Indicator -->
+                <div class="blur-reveal blur-reveal-delay-5 mt-20 animate-bounce">
+                    <i class="fa-solid fa-chevron-down text-gray-400 text-2xl"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- Abstract Section -->
+        <section class="py-20 px-6">
+            <div class="max-w-4xl mx-auto">
+                <div class="glass-card rounded-3xl p-10 section-fade">
+                    <h2 class="text-3xl font-bold mb-6 text-gray-800">
+                        <i class="fa-solid fa-quote-left text-indigo-400 mr-3"></i>
+                        Abstract
+                    </h2>
+                    <p class="text-lg text-gray-700 leading-relaxed">
+                        Attention mechanisms are the core of foundation models, but their quadratic complexity remains a critical bottleneck for scaling. This challenge has driven the development of efficient attention mechanisms, with sparsity emerging as the dominant paradigm. Current methods typically retain or discard entire key–value blocks with binary masks, resulting in substantial information loss under high sparsity.
+                    </p>
+                    <p class="text-lg text-gray-700 leading-relaxed mt-4">
+                        We present <strong class="text-indigo-600">Pyramid Sparse Attention (PSA)</strong>, a versatile module applicable to both video understanding and generation tasks. Instead of binary masking, PSA introduces multi-level pooled KV representations, enabling finer mask granularity. Each query block dynamically allocates lower pooling levels to critical KV blocks and higher levels to less important ones, creating an informative interpolation between full retention and complete pruning.
+                    </p>
+                    <p class="text-lg text-gray-700 leading-relaxed mt-4">
+                        This design effectively mitigates information loss while preserving computational efficiency under a low compute budget. Across video understanding and generation benchmarks, PSA preserves contextual information and visual fidelity, consistently outperforming or achieving comparable performance over existing sparse attention baselines with superior efficiency–quality trade-offs.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Interactive Demos Section -->
+        <section class="py-20 px-6">
+            <div class="max-w-6xl mx-auto">
+                <h2 class="text-4xl font-bold text-center mb-4 text-gray-800 section-fade">
+                    Interactive Demos
+                </h2>
+                <p class="text-xl text-gray-600 text-center mb-16 section-fade">
+                    Experience the speed and quality improvements firsthand
+                </p>
+
+                <!-- Demo A: Video Generation -->
+                <div class="glass-card rounded-3xl p-8 mb-12 section-fade">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-2xl font-bold text-gray-800">
+                            <i class="fa-solid fa-video text-indigo-500 mr-3"></i>
+                            Video Generation Comparison
+                        </h3>
+                        <div class="speed-badge glass-card px-4 py-2 rounded-full text-emerald-600 font-bold text-sm">
+                            ⚡️ 1.9x Faster
+                        </div>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <!-- Baseline Video -->
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-2 text-gray-600">
+                                <span class="w-3 h-3 rounded-full bg-gray-400"></span>
+                                <span class="font-medium">Baseline (Full Attention)</span>
+                            </div>
+                            <div class="video-container aspect-video flex items-center justify-center">
+                                <video id="baseline-video" class="w-full h-full object-cover" muted playsinline>
+                                    <source src="" type="video/mp4">
+                                </video>
+                                <div id="baseline-placeholder" class="absolute inset-0 flex items-center justify-center text-gray-400">
+                                    <div class="text-center">
+                                        <i class="fa-solid fa-film text-4xl mb-2"></i>
+                                        <p>Baseline Video</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ours Video -->
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-2 text-gray-600">
+                                <span class="w-3 h-3 rounded-full bg-indigo-500"></span>
+                                <span class="font-medium">Ours (PSA + TDM)</span>
+                            </div>
+                            <div class="video-container aspect-video flex items-center justify-center relative">
+                                <video id="ours-video" class="w-full h-full object-cover" muted playsinline>
+                                    <source src="" type="video/mp4">
+                                </video>
+                                <div id="ours-placeholder" class="absolute inset-0 flex items-center justify-center text-gray-400">
+                                    <div class="text-center">
+                                        <i class="fa-solid fa-film text-4xl mb-2"></i>
+                                        <p>Our Video</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Play Button -->
+                    <div class="flex justify-center mt-8">
+                        <button id="play-videos-btn" class="pill-btn bg-indigo-600 text-white px-8 py-4 rounded-full flex items-center gap-3 font-medium hover:bg-indigo-700">
+                            <i class="fa-solid fa-play"></i>
+                            Play Both Videos
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Demo B: Video Understanding -->
+                <div class="glass-card rounded-3xl p-8 section-fade">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">
+                        <i class="fa-solid fa-comments text-indigo-500 mr-3"></i>
+                        Video Understanding Latency Race
+                    </h3>
+
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <!-- Baseline Chat -->
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-2 text-gray-600 mb-4">
+                                <span class="w-3 h-3 rounded-full bg-gray-400"></span>
+                                <span class="font-medium">Baseline Model</span>
+                            </div>
+
+                            <div class="glass-card-dark rounded-2xl p-6 min-h-[300px]">
+                                <!-- User Message -->
+                                <div class="flex justify-end mb-4">
+                                    <div class="chat-bubble user rounded-2xl rounded-tr-md px-4 py-3">
+                                        <p class="text-sm">🎥 [Video: A couple walking under a red umbrella in the rain]</p>
+                                        <p class="text-sm mt-2">What is happening in this video?</p>
+                                    </div>
+                                </div>
+
+                                <!-- Assistant Response Area -->
+                                <div class="flex justify-start">
+                                    <div class="chat-bubble assistant rounded-2xl rounded-tl-md px-4 py-3" id="baseline-response">
+                                        <div class="flex items-center gap-2 text-gray-500">
+                                            <div class="spinner" id="baseline-spinner"></div>
+                                            <span>Thinking...</span>
+                                        </div>
+                                        <p class="text-gray-700 hidden" id="baseline-text"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ours Chat -->
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-2 text-gray-600 mb-4">
+                                <span class="w-3 h-3 rounded-full bg-indigo-500"></span>
+                                <span class="font-medium">Ours (PSA)</span>
+                                <span class="text-emerald-500 font-bold text-sm ml-2">⚡️ 0.65 Sparsity</span>
+                            </div>
+
+                            <div class="glass-card-dark rounded-2xl p-6 min-h-[300px]">
+                                <!-- User Message -->
+                                <div class="flex justify-end mb-4">
+                                    <div class="chat-bubble user rounded-2xl rounded-tr-md px-4 py-3">
+                                        <p class="text-sm">🎥 [Video: A couple walking under a red umbrella in the rain]</p>
+                                        <p class="text-sm mt-2">What is happening in this video?</p>
+                                    </div>
+                                </div>
+
+                                <!-- Assistant Response Area -->
+                                <div class="flex justify-start">
+                                    <div class="chat-bubble assistant rounded-2xl rounded-tl-md px-4 py-3" id="ours-response">
+                                        <div class="flex items-center gap-2 text-gray-500" id="ours-spinner-container">
+                                            <div class="spinner" id="ours-spinner"></div>
+                                            <span>Thinking...</span>
+                                        </div>
+                                        <p class="text-gray-700 hidden" id="ours-text"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Start Button -->
+                    <div class="flex justify-center mt-8">
+                        <button id="start-chat-btn" class="pill-btn bg-indigo-600 text-white px-8 py-4 rounded-full flex items-center gap-3 font-medium hover:bg-indigo-700">
+                            <i class="fa-solid fa-bolt"></i>
+                            Start Latency Race
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Method Section (Bento Grid) -->
+        <section class="py-20 px-6">
+            <div class="max-w-6xl mx-auto">
+                <h2 class="text-4xl font-bold text-center mb-4 text-gray-800 section-fade">
+                    Method
+                </h2>
+                <p class="text-xl text-gray-600 text-center mb-16 section-fade">
+                    Pyramid Sparse Attention Framework
+                </p>
+
+                <div class="bento-grid section-fade">
+                    <!-- PSA Framework Overview -->
+                    <div class="glass-card rounded-3xl p-6 col-span-2">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">
+                            <i class="fa-solid fa-diagram-project text-indigo-500 mr-2"></i>
+                            Framework Overview
+                        </h3>
+                        <div class="bg-white/50 rounded-2xl p-4 mb-4">
+                            <img src="figures/PSA_workflow.png" alt="PSA Framework" class="w-full h-auto rounded-xl">
+                        </div>
+                        <p class="text-gray-600 text-sm leading-relaxed">
+                            <strong>Overview of the Pyramid Sparse Attention (PSA) framework.</strong>
+                            PSA adaptively allocates attention computation across hierarchical KV representations (green; lighter shades denote coarser levels). The multi-level mask (blue) determines which KV level each query block attends to. As illustrated, the current attention block assigned to level 4 uses the coarsest KV representation $K_j^4$ and $V_j^4$.
+                        </p>
+                    </div>
+
+                    <!-- Comparison Figure -->
+                    <div class="glass-card rounded-3xl p-6 col-span-2">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">
+                            <i class="fa-solid fa-scale-balanced text-indigo-500 mr-2"></i>
+                            Attention Mechanism Comparison
+                        </h3>
+                        <div class="bg-white/50 rounded-2xl p-4 mb-4">
+                            <img src="figures/error_compare.jpg" alt="Comparison" class="w-full h-auto rounded-xl">
+                        </div>
+                        <p class="text-gray-600 text-sm leading-relaxed">
+                            <strong>Comparison of attention mechanisms under identical compute budget.</strong>
+                            Despite identical FLOPs (20% full), PSA allows each query block to attend to a much larger portion of KV blocks (70% active regions), whereas Block Sparse Attention restricts each query to only 20% active regions. PSA closely matches Full Attention with minimal relative error (&lt;3%), while BSA shows noticeable distortions.
+                        </p>
+                    </div>
+
+                    <!-- Key Insight 1 -->
+                    <div class="glass-card rounded-3xl p-6">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">
+                            <i class="fa-solid fa-layer-group text-blue-500 mr-2"></i>
+                            Pyramid KV Blocks
+                        </h3>
+                        <p class="text-gray-600 text-sm leading-relaxed">
+                            We build a hierarchical pyramid of $H$ levels by progressively pooling along the sequence dimension:
+                        </p>
+                        <div class="bg-white/50 rounded-xl p-4 mt-4 text-center">
+                            <p class="text-sm text-gray-700">
+                                $K_i^{h+1} = \text{MeanPool}(K_i^{h}, 2, 2)$
+                            </p>
+                        </div>
+                        <p class="text-gray-600 text-sm leading-relaxed mt-4">
+                            This creates a smooth continuum between full retention and complete pruning, analogous to Feature Pyramid Networks in computer vision.
+                        </p>
+                    </div>
+
+                    <!-- Key Insight 2 -->
+                    <div class="glass-card rounded-3xl p-6">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">
+                            <i class="fa-solid fa-mask text-purple-500 mr-2"></i>
+                            Multi-Level Mask
+                        </h3>
+                        <p class="text-gray-600 text-sm leading-relaxed">
+                            Instead of binary 0/1 masking, PSA uses a multi-level mask $M \in \{0, 1, \ldots, H\}^{n_q \times n_k}$:
+                        </p>
+                        <div class="bg-white/50 rounded-xl p-4 mt-4 text-center">
+                            <p class="text-sm text-gray-700">
+                                $M_{ij} = h > 0 \Rightarrow$ use $K_j^h, V_j^h$
+                            </p>
+                        </div>
+                        <p class="text-gray-600 text-sm leading-relaxed mt-4">
+                            This generalizes BSA's 1-bit binary mask into a multi-bit, fixed-point scheme for finer-grained compute allocation.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Algorithm Section -->
+        <section class="py-20 px-6">
+            <div class="max-w-5xl mx-auto">
+                <h2 class="text-4xl font-bold text-center mb-4 text-gray-800 section-fade">
+                    Algorithm
+                </h2>
+                <p class="text-xl text-gray-600 text-center mb-16 section-fade">
+                    Core computation procedures
+                </p>
+
+                <div class="grid md:grid-cols-2 gap-8 section-fade">
+                    <!-- Algorithm 1: PSA Computation -->
+                    <div class="glass-card rounded-3xl p-6">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <span class="bg-indigo-500 text-white px-2 py-1 rounded text-sm">Algorithm 1</span>
+                            Computation of PSA
+                        </h3>
+                        <div class="algorithm-block bg-white/60 rounded-2xl p-4 overflow-x-auto">
+                            <div class="space-y-1">
+                                <div class="flex"><span class="line-number">1</span><span><span class="keyword">Input:</span> Query blocks $\{Q_i\}$, pyramid KV blocks $\{K_j^h, V_j^h\}$, mask $M$</span></div>
+                                <div class="flex"><span class="line-number">2</span><span><span class="keyword">Output:</span> Output blocks $\{O_i\}$</span></div>
+                                <div class="flex"><span class="line-number">3</span><span><span class="keyword">for</span> each query block $Q_i$ <span class="keyword">do</span></span></div>
+                                <div class="flex"><span class="line-number">4</span><span class="pl-6">Initialize $o_i \gets 0$, $m_i \gets -\infty$, $l_i \gets 0$</span></div>
+                                <div class="flex"><span class="line-number">5</span><span class="pl-6"><span class="keyword">for</span> each key block $K_j$ <span class="keyword">do</span></span></div>
+                                <div class="flex"><span class="line-number">6</span><span class="pl-12">$h \gets M_{ij}$</span></div>
+                                <div class="flex"><span class="line-number">7</span><span class="pl-12"><span class="keyword">if</span> $h = 0$ <span class="keyword">then continue</span> <span class="comment">// Skip pruned</span></span></div>
+                                <div class="flex"><span class="line-number">8</span><span class="pl-12">$S_{ij} \gets Q_i K_j^{h\top} / \sqrt{d} + (h-1)\ln 2$</span></div>
+                                <div class="flex"><span class="line-number">9</span><span class="pl-12">$m_{ij} \gets \max(\text{rowmax}(S_{ij}), m_i)$</span></div>
+                                <div class="flex"><span class="line-number">10</span><span class="pl-12">$P_{ij} \gets \exp(S_{ij} - m_{ij})$</span></div>
+                                <div class="flex"><span class="line-number">11</span><span class="pl-12">$l_{ij} \gets l_i \exp(m_i - m_{ij}) + \text{rowsum}(P_{ij})$</span></div>
+                                <div class="flex"><span class="line-number">12</span><span class="pl-12">$o_i \gets o_i \exp(m_i - m_{ij}) + P_{ij} V_j^h$</span></div>
+                                <div class="flex"><span class="line-number">13</span><span class="pl-12">$m_i \gets m_{ij}$, $l_i \gets l_{ij}$</span></div>
+                                <div class="flex"><span class="line-number">14</span><span class="pl-6"><span class="keyword">end for</span></span></div>
+                                <div class="flex"><span class="line-number">15</span><span class="pl-6">$O_i \gets o_i / l_i$</span></div>
+                                <div class="flex"><span class="line-number">16</span><span><span class="keyword">end for</span></span></div>
+                                <div class="flex"><span class="line-number">17</span><span><span class="keyword">return</span> $\{O_i\}$</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Algorithm 2: Mask Assignment -->
+                    <div class="glass-card rounded-3xl p-6">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <span class="bg-indigo-500 text-white px-2 py-1 rounded text-sm">Algorithm 2</span>
+                            Multi-Level Mask Assignment
+                        </h3>
+                        <div class="algorithm-block bg-white/60 rounded-2xl p-4 overflow-x-auto">
+                            <div class="space-y-1">
+                                <div class="flex"><span class="line-number">1</span><span><span class="keyword">Input:</span> Importance map $S$, thresholds $T=\{\tau_1,\dots,\tau_H\}$</span></div>
+                                <div class="flex"><span class="line-number">2</span><span><span class="keyword">Output:</span> Multi-level mask $M$</span></div>
+                                <div class="flex"><span class="line-number">3</span><span>$M \gets \text{zeros\_like}(S)$</span></div>
+                                <div class="flex"><span class="line-number">4</span><span><span class="keyword">for</span> $i = 1$ <span class="keyword">to</span> $n_q$ <span class="keyword">do</span></span></div>
+                                <div class="flex"><span class="line-number">5</span><span class="pl-6">$E_i \gets S_i / \sum_j S_{ij}$ <span class="comment">// Normalize row</span></span></div>
+                                <div class="flex"><span class="line-number">6</span><span class="pl-6">$(E_i', \pi_i) \gets \text{sort\_desc}(E_i)$</span></div>
+                                <div class="flex"><span class="line-number">7</span><span class="pl-6">$\hat{E}_i \gets \text{cumsum}(E_i')$</span></div>
+                                <div class="flex"><span class="line-number">8</span><span class="pl-6"><span class="keyword">for</span> $j = 1$ <span class="keyword">to</span> $n_k$ <span class="keyword">do</span></span></div>
+                                <div class="flex"><span class="line-number">9</span><span class="pl-12">$j' \gets \pi_i(j)$ <span class="comment">// Map to sorted index</span></span></div>
+                                <div class="flex"><span class="line-number">10</span><span class="pl-12"><span class="keyword">if</span> $\hat{E}_{ij'} > \tau_H$ <span class="keyword">then</span></span></div>
+                                <div class="flex"><span class="line-number">11</span><span class="pl-16">$M_{ij} \gets 0$</span></div>
+                                <div class="flex"><span class="line-number">12</span><span class="pl-12"><span class="keyword">else</span></span></div>
+                                <div class="flex"><span class="line-number">13</span><span class="pl-16">$M_{ij} \gets \min \{ t \mid \hat{E}_{ij'} \le \tau_t \}$</span></div>
+                                <div class="flex"><span class="line-number">14</span><span class="pl-12"><span class="keyword">end if</span></span></div>
+                                <div class="flex"><span class="line-number">15</span><span class="pl-6"><span class="keyword">end for</span></span></div>
+                                <div class="flex"><span class="line-number">16</span><span><span class="keyword">end for</span></span></div>
+                                <div class="flex"><span class="line-number">17</span><span><span class="keyword">return</span> $M$</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section class="py-20 px-6">
+            <div class="max-w-6xl mx-auto">
+                <h2 class="text-4xl font-bold text-center mb-4 text-gray-800 section-fade">
+                    Experimental Results
+                </h2>
+                <p class="text-xl text-gray-600 text-center mb-16 section-fade">
+                    Comprehensive evaluation on video generation and understanding
+                </p>
+
+                <!-- Table 1: Video Generation -->
+                <div class="glass-card rounded-3xl p-8 mb-12 section-fade overflow-x-auto">
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">
+                        <i class="fa-solid fa-table text-indigo-500 mr-2"></i>
+                        Video Generation Results on Wan-series Models
+                    </h3>
+                    <p class="text-gray-600 text-sm mb-6">
+                        Quantitative comparison on Wan-series models in training-free video generation experiments.
+                        Similarity metrics (PSNR, SSIM, LPIPS) and perceptual quality measures from VBench.
+                    </p>
+
+                    <table class="booktabs-table w-full text-sm">
+                        <thead>
+                            <tr class="text-left">
+                                <th class="py-3 px-4 font-bold">Model</th>
+                                <th class="py-3 px-4 font-bold">Method</th>
+                                <th class="py-3 px-4 font-bold text-right">PSNR↑</th>
+                                <th class="py-3 px-4 font-bold text-right">SSIM↑</th>
+                                <th class="py-3 px-4 font-bold text-right">LPIPS↓</th>
+                                <th class="py-3 px-4 font-bold text-right">Aes.↑</th>
+                                <th class="py-3 px-4 font-bold text-right">Bkg.↑</th>
+                                <th class="py-3 px-4 font-bold text-right">Img.↑</th>
+                                <th class="py-3 px-4 font-bold text-right">Sparsity</th>
+                                <th class="py-3 px-4 font-bold text-right">Latency(s)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Wan 2.1 1.3B -->
+                            <tr>
+                                <td class="py-2 px-4 font-medium" rowspan="6">Wan 2.1 1.3B</td>
+                                <td class="py-2 px-4">Full</td>
+                                <td class="py-2 px-4 text-right text-gray-400">--</td>
+                                <td class="py-2 px-4 text-right text-gray-400">--</td>
+                                <td class="py-2 px-4 text-right text-gray-400">--</td>
+                                <td class="py-2 px-4 text-right">0.6489</td>
+                                <td class="py-2 px-4 text-right">0.9645</td>
+                                <td class="py-2 px-4 text-right">0.6557</td>
+                                <td class="py-2 px-4 text-right text-gray-400">--</td>
+                                <td class="py-2 px-4 text-right">327</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-4">SVG2</td>
+                                <td class="py-2 px-4 text-right font-bold">25.21</td>
+                                <td class="py-2 px-4 text-right font-bold">0.801</td>
+                                <td class="py-2 px-4 text-right underline">0.126</td>
+                                <td class="py-2 px-4 text-right">0.6185</td>
+                                <td class="py-2 px-4 text-right underline">0.9548</td>
+                                <td class="py-2 px-4 text-right">0.5545</td>
+                                <td class="py-2 px-4 text-right">0.91</td>
+                                <td class="py-2 px-4 text-right">187</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-4">SVG</td>
+                                <td class="py-2 px-4 text-right">17.57</td>
+                                <td class="py-2 px-4 text-right">0.567</td>
+                                <td class="py-2 px-4 text-right">0.399</td>
+                                <td class="py-2 px-4 text-right">0.5039</td>
+                                <td class="py-2 px-4 text-right">0.9444</td>
+                                <td class="py-2 px-4 text-right">0.5974</td>
+                                <td class="py-2 px-4 text-right">0.85</td>
+                                <td class="py-2 px-4 text-right">165</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-4">Sparge</td>
+                                <td class="py-2 px-4 text-right">22.83</td>
+                                <td class="py-2 px-4 text-right">0.736</td>
+                                <td class="py-2 px-4 text-right">0.177</td>
+                                <td class="py-2 px-4 text-right">0.6232</td>
+                                <td class="py-2 px-4 text-right">0.9476</td>
+                                <td class="py-2 px-4 text-right">0.6409</td>
+                                <td class="py-2 px-4 text-right">0.90</td>
+                                <td class="py-2 px-4 text-right">165</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-4">STA</td>
+                                <td class="py-2 px-4 text-right">20.56</td>
+                                <td class="py-2 px-4 text-right">0.677</td>
+                                <td class="py-2 px-4 text-right">0.197</td>
+                                <td class="py-2 px-4 text-right underline">0.6521</td>
+                                <td class="py-2 px-4 text-right">0.9419</td>
+                                <td class="py-2 px-4 text-right underline">0.6501</td>
+                                <td class="py-2 px-4 text-right">0.83</td>
+                                <td class="py-2 px-4 text-right">162</td>
+                            </tr>
+                            <tr class="highlight-row">
+                                <td class="py-2 px-4 font-bold text-indigo-600">PSA (Ours)</td>
+                                <td class="py-2 px-4 text-right underline">24.36</td>
+                                <td class="py-2 px-4 text-right underline">0.788</td>
+                                <td class="py-2 px-4 text-right font-bold">0.121</td>
+                                <td class="py-2 px-4 text-right font-bold">0.6686</td>
+                                <td class="py-2 px-4 text-right font-bold">0.9612</td>
+                                <td class="py-2 px-4 text-right font-bold">0.6607</td>
+                                <td class="py-2 px-4 text-right">0.91</td>
+                                <td class="py-2 px-4 text-right">176</td>
+                            </tr>
+
+                            <!-- Wan 2.2 5B -->
+                            <tr class="border-t border-gray-200">
+                                <td class="py-2 px-4 font-medium" rowspan="5">Wan 2.2 5B<br><span class="text-xs text-gray-500">(1280×704, 121f)</span></td>
+                                <td class="py-2 px-4">Full</td>
+                                <td class="py-2 px-4 text-right text-gray-400">--</td>
+                                <td class="py-2 px-4 text-right text-gray-400">--</td>
+                                <td class="py-2 px-4 text-right text-gray-400">--</td>
+                                <td class="py-2 px-4 text-right">0.6598</td>
+                                <td class="py-2 px-4 text-right">0.9564</td>
+                                <td class="py-2 px-4 text-right">0.6547</td>
+                                <td class="py-2 px-4 text-right text-gray-400">--</td>
+                                <td class="py-2 px-4 text-right">168</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-4">SVG2</td>
+                                <td class="py-2 px-4 text-right font-bold">24.25</td>
+                                <td class="py-2 px-4 text-right font-bold">0.818</td>
+                                <td class="py-2 px-4 text-right font-bold">0.092</td>
+                                <td class="py-2 px-4 text-right underline">0.6495</td>
+                                <td class="py-2 px-4 text-right underline">0.9518</td>
+                                <td class="py-2 px-4 text-right underline">0.6025</td>
+                                <td class="py-2 px-4 text-right">0.90</td>
+                                <td class="py-2 px-4 text-right">149</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-4">SVG</td>
+                                <td class="py-2 px-4 text-right">18.89</td>
+                                <td class="py-2 px-4 text-right">0.645</td>
+                                <td class="py-2 px-4 text-right">0.266</td>
+                                <td class="py-2 px-4 text-right">0.5539</td>
+                                <td class="py-2 px-4 text-right">0.9386</td>
+                                <td class="py-2 px-4 text-right">0.5877</td>
+                                <td class="py-2 px-4 text-right">0.86</td>
+                                <td class="py-2 px-4 text-right">122</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-4">Sparge</td>
+                                <td class="py-2 px-4 text-right">19.53</td>
+                                <td class="py-2 px-4 text-right">0.660</td>
+                                <td class="py-2 px-4 text-right">0.229</td>
+                                <td class="py-2 px-4 text-right">0.5482</td>
+                                <td class="py-2 px-4 text-right">0.9289</td>
+                                <td class="py-2 px-4 text-right">0.5650</td>
+                                <td class="py-2 px-4 text-right">0.89</td>
+                                <td class="py-2 px-4 text-right">124</td>
+                            </tr>
+                            <tr class="highlight-row">
+                                <td class="py-2 px-4 font-bold text-indigo-600">PSA (Ours)</td>
+                                <td class="py-2 px-4 text-right underline">23.03</td>
+                                <td class="py-2 px-4 text-right underline">0.794</td>
+                                <td class="py-2 px-4 text-right underline">0.096</td>
+                                <td class="py-2 px-4 text-right font-bold">0.6588</td>
+                                <td class="py-2 px-4 text-right font-bold">0.9569</td>
+                                <td class="py-2 px-4 text-right font-bold">0.6438</td>
+                                <td class="py-2 px-4 text-right">0.89</td>
+                                <td class="py-2 px-4 text-right">131</td>
+                            </tr>
+
+                            <!-- Wan 2.1 14B -->
+                            <tr class="border-t border-gray-200">
+                                <td class="py-2 px-4 font-medium" rowspan="6">Wan 2.1 14B</td>
+                                <td class="py-2 px-4">Full</td>
+                                <td class="py-2 px-4 text-right text-gray-400">--</td>
+                                <td class="py-2 px-4 text-right text-gray-400">--</td>
+                                <td class="py-2 px-4 text-right text-gray-400">--</td>
+                                <td class="py-2 px-4 text-right">0.6918</td>
+                                <td class="py-2 px-4 text-right">0.9639</td>
+                                <td class="py-2 px-4 text-right">0.6247</td>
+                                <td class="py-2 px-4 text-right text-gray-400">--</td>
+                                <td class="py-2 px-4 text-right">1548</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-4">SVG2</td>
+                                <td class="py-2 px-4 text-right font-bold">24.79</td>
+                                <td class="py-2 px-4 text-right font-bold">0.807</td>
+                                <td class="py-2 px-4 text-right font-bold">0.085</td>
+                                <td class="py-2 px-4 text-right underline">0.6614</td>
+                                <td class="py-2 px-4 text-right underline">0.9439</td>
+                                <td class="py-2 px-4 text-right">0.5555</td>
+                                <td class="py-2 px-4 text-right">0.87</td>
+                                <td class="py-2 px-4 text-right">913</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-4">SVG</td>
+                                <td class="py-2 px-4 text-right">19.84</td>
+                                <td class="py-2 px-4 text-right">0.649</td>
+                                <td class="py-2 px-4 text-right">0.300</td>
+                                <td class="py-2 px-4 text-right">0.5337</td>
+                                <td class="py-2 px-4 text-right font-bold">0.9501</td>
+                                <td class="py-2 px-4 text-right">0.5479</td>
+                                <td class="py-2 px-4 text-right">0.85</td>
+                                <td class="py-2 px-4 text-right">830</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-4">Sparge</td>
+                                <td class="py-2 px-4 text-right">22.19</td>
+                                <td class="py-2 px-4 text-right">0.737</td>
+                                <td class="py-2 px-4 text-right">0.182</td>
+                                <td class="py-2 px-4 text-right">0.6083</td>
+                                <td class="py-2 px-4 text-right">0.8779</td>
+                                <td class="py-2 px-4 text-right">0.5977</td>
+                                <td class="py-2 px-4 text-right">0.88</td>
+                                <td class="py-2 px-4 text-right">855</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-4">STA</td>
+                                <td class="py-2 px-4 text-right">20.83</td>
+                                <td class="py-2 px-4 text-right">0.694</td>
+                                <td class="py-2 px-4 text-right">0.185</td>
+                                <td class="py-2 px-4 text-right">0.6544</td>
+                                <td class="py-2 px-4 text-right">0.9399</td>
+                                <td class="py-2 px-4 text-right font-bold">0.6489</td>
+                                <td class="py-2 px-4 text-right">0.83</td>
+                                <td class="py-2 px-4 text-right">815</td>
+                            </tr>
+                            <tr class="highlight-row">
+                                <td class="py-2 px-4 font-bold text-indigo-600">PSA (Ours)</td>
+                                <td class="py-2 px-4 text-right underline">23.83</td>
+                                <td class="py-2 px-4 text-right underline">0.768</td>
+                                <td class="py-2 px-4 text-right underline">0.105</td>
+                                <td class="py-2 px-4 text-right font-bold">0.6776</td>
+                                <td class="py-2 px-4 text-right">0.9261</td>
+                                <td class="py-2 px-4 text-right underline">0.6400</td>
+                                <td class="py-2 px-4 text-right">0.88</td>
+                                <td class="py-2 px-4 text-right">887</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Table 2 & 3: Side by side -->
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Table 2: PSA + TDM -->
+                    <div class="glass-card rounded-3xl p-6 section-fade">
+                        <h3 class="text-lg font-bold text-gray-800 mb-2">
+                            <i class="fa-solid fa-bolt text-yellow-500 mr-2"></i>
+                            PSA + TDM Distillation
+                        </h3>
+                        <p class="text-gray-600 text-sm mb-4">
+                            Combining PSA with TDM on CogVideoX-5B achieves <strong class="text-indigo-600">30.2× speedup</strong>.
+                        </p>
+
+                        <table class="booktabs-table w-full text-sm">
+                            <thead>
+                                <tr class="text-left">
+                                    <th class="py-2 px-3 font-bold">Method</th>
+                                    <th class="py-2 px-3 font-bold text-right">Sparsity</th>
+                                    <th class="py-2 px-3 font-bold text-right">Steps</th>
+                                    <th class="py-2 px-3 font-bold text-right">VBench</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="py-2 px-3">FullAttn</td>
+                                    <td class="py-2 px-3 text-right text-gray-400">--</td>
+                                    <td class="py-2 px-3 text-right">50</td>
+                                    <td class="py-2 px-3 text-right">0.819</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 px-3">Distill-only</td>
+                                    <td class="py-2 px-3 text-right text-gray-400">--</td>
+                                    <td class="py-2 px-3 text-right font-bold">4</td>
+                                    <td class="py-2 px-3 text-right">0.818</td>
+                                </tr>
+                                <tr class="highlight-row">
+                                    <td class="py-2 px-3 font-bold text-indigo-600">Ours</td>
+                                    <td class="py-2 px-3 text-right font-bold">0.85</td>
+                                    <td class="py-2 px-3 text-right font-bold">4</td>
+                                    <td class="py-2 px-3 text-right font-bold">0.826</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Table 3: Video Understanding -->
+                    <div class="glass-card rounded-3xl p-6 section-fade">
+                        <h3 class="text-lg font-bold text-gray-800 mb-2">
+                            <i class="fa-solid fa-eye text-blue-500 mr-2"></i>
+                            Video Understanding (Video-MME)
+                        </h3>
+                        <p class="text-gray-600 text-sm mb-4">
+                            PSA achieves the best overall performance at <strong class="text-indigo-600">0.65 sparsity</strong>.
+                        </p>
+
+                        <table class="booktabs-table w-full text-sm">
+                            <thead>
+                                <tr class="text-left">
+                                    <th class="py-2 px-3 font-bold">Method</th>
+                                    <th class="py-2 px-3 font-bold text-right">Short</th>
+                                    <th class="py-2 px-3 font-bold text-right">Med.</th>
+                                    <th class="py-2 px-3 font-bold text-right">Long</th>
+                                    <th class="py-2 px-3 font-bold text-right">Overall</th>
+                                    <th class="py-2 px-3 font-bold text-right">Sparsity</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="py-2 px-3">Full Attention</td>
+                                    <td class="py-2 px-3 text-right font-bold">0.752</td>
+                                    <td class="py-2 px-3 text-right">0.663</td>
+                                    <td class="py-2 px-3 text-right">0.537</td>
+                                    <td class="py-2 px-3 text-right">0.651</td>
+                                    <td class="py-2 px-3 text-right text-gray-400">--</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 px-3">XAttention</td>
+                                    <td class="py-2 px-3 text-right">0.748</td>
+                                    <td class="py-2 px-3 text-right">0.661</td>
+                                    <td class="py-2 px-3 text-right font-bold">0.544</td>
+                                    <td class="py-2 px-3 text-right">0.651</td>
+                                    <td class="py-2 px-3 text-right">0.58</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 px-3">SpargeAttn</td>
+                                    <td class="py-2 px-3 text-right">0.749</td>
+                                    <td class="py-2 px-3 text-right">0.663</td>
+                                    <td class="py-2 px-3 text-right">0.539</td>
+                                    <td class="py-2 px-3 text-right">0.650</td>
+                                    <td class="py-2 px-3 text-right">0.37</td>
+                                </tr>
+                                <tr class="highlight-row">
+                                    <td class="py-2 px-3 font-bold text-indigo-600">PSA (Ours)</td>
+                                    <td class="py-2 px-3 text-right">0.748</td>
+                                    <td class="py-2 px-3 text-right font-bold">0.673</td>
+                                    <td class="py-2 px-3 text-right">0.542</td>
+                                    <td class="py-2 px-3 text-right font-bold">0.654</td>
+                                    <td class="py-2 px-3 text-right font-bold">0.65</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="py-16 px-6">
+            <div class="max-w-4xl mx-auto text-center">
+                <div class="glass-card rounded-3xl p-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Citation</h3>
+                    <div class="bg-white/50 rounded-xl p-4 text-left font-mono text-sm text-gray-600 overflow-x-auto">
+                        <pre>@inproceedings{psa2025,
+  title={PSA: Pyramid Sparse Attention for Efficient Video Understanding and Generation},
+  author={Li, Xiaolong and Gu, Youping and Lin, Xi and Wang, Weijie and Zhuang, Bohan},
+  booktitle={ICML},
+  year={2025}
+}</pre>
+                    </div>
+                    <div class="mt-8 flex justify-center gap-6">
+                        <a href="#" class="text-gray-500 hover:text-gray-800 transition-colors">
+                            <i class="fa-brands fa-github text-2xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-500 hover:text-gray-800 transition-colors">
+                            <i class="fa-solid fa-envelope text-2xl"></i>
+                        </a>
+                    </div>
+                    <p class="text-gray-500 text-sm mt-6">
+                        © 2025 Pyramid Sparse Attention. All rights reserved.
+                    </p>
+                </div>
+            </div>
+        </footer>
+    </main>
+
+    <!-- JavaScript for Interactivity -->
+    <script>
+        // Intersection Observer for section animations
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.section-fade').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Video Generation Demo - Sync Play
+        const playVideosBtn = document.getElementById('play-videos-btn');
+        const baselineVideo = document.getElementById('baseline-video');
+        const oursVideo = document.getElementById('ours-video');
+
+        playVideosBtn.addEventListener('click', () => {
+            // Reset videos
+            baselineVideo.currentTime = 0;
+            oursVideo.currentTime = 0;
+
+            // Play both simultaneously
+            Promise.all([
+                baselineVideo.play().catch(() => {}),
+                oursVideo.play().catch(() => {})
+            ]);
+
+            playVideosBtn.innerHTML = '<i class="fa-solid fa-pause"></i> Playing...';
+
+            // Reset button when videos end
+            const handleEnd = () => {
+                playVideosBtn.innerHTML = '<i class="fa-solid fa-play"></i> Play Both Videos';
+            };
+
+            baselineVideo.addEventListener('ended', handleEnd, { once: true });
+            oursVideo.addEventListener('ended', handleEnd, { once: true });
+        });
+
+        // Video Understanding Demo - Latency Race
+        const startChatBtn = document.getElementById('start-chat-btn');
+        const baselineSpinner = document.getElementById('baseline-spinner');
+        const oursSpinnerContainer = document.getElementById('ours-spinner-container');
+        const baselineText = document.getElementById('baseline-text');
+        const oursText = document.getElementById('ours-text');
+
+        const responseText = "The video shows a romantic scene of a couple walking together under a bright red umbrella during a rainy day. The reflections of their figures shimmer on the wet pavement, creating an atmospheric and cinematic visual. The umbrella's vibrant color contrasts beautifully with the gray, rainy environment.";
+
+        function typeText(element, text, delay = 30) {
+            return new Promise((resolve) => {
+                let index = 0;
+                element.classList.remove('hidden');
+                element.innerHTML = '';
+
+                function addChar() {
+                    if (index < text.length) {
+                        const span = document.createElement('span');
+                        span.textContent = text[index];
+                        span.classList.add('text-blur-in');
+                        element.appendChild(span);
+                        index++;
+                        setTimeout(addChar, delay);
+                    } else {
+                        resolve();
+                    }
+                }
+
+                addChar();
+            });
+        }
+
+        startChatBtn.addEventListener('click', async () => {
+            // Reset
+            baselineSpinner.parentElement.classList.remove('hidden');
+            oursSpinnerContainer.classList.remove('hidden');
+            baselineText.classList.add('hidden');
+            oursText.classList.add('hidden');
+            baselineText.innerHTML = '';
+            oursText.innerHTML = '';
+
+            startChatBtn.disabled = true;
+            startChatBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Running...';
+
+            // Ours: Fast response (0.5s spinner, then type)
+            setTimeout(async () => {
+                oursSpinnerContainer.classList.add('hidden');
+                await typeText(oursText, responseText, 25);
+            }, 500);
+
+            // Baseline: Slow response (3s spinner, then type)
+            setTimeout(async () => {
+                baselineSpinner.parentElement.classList.add('hidden');
+                await typeText(baselineText, responseText, 25);
+
+                startChatBtn.disabled = false;
+                startChatBtn.innerHTML = '<i class="fa-solid fa-bolt"></i> Start Latency Race';
+            }, 3000);
+        });
+    </script>
+</body>
+</html>

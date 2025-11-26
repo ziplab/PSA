@@ -1,0 +1,205 @@
+\section{Methodology}
+
+We propose \textbf{Pyramid Sparse Attention (PSA)}, a hierarchical sparse attention framework that allocates computation adaptively across multi-level pooled key-value (KV) representations.
+PSA consists of three components: (1) Pyramid KV Blocks that capture coarse-to-fine context, (2) a Multi-Level Mask Generator that predicts hierarchical sparsity, and (3) Adaptive Pyramid Attention that fetches KV blocks and computes attention accordingly (see ~\cref{fig:framework}).
+% Our proposed PSA is model-agnostic and can be directly integrated into existing video generation and understanding models.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/PSA.png}
+    \caption{\textbf{Overview of the Pyramid Sparse Attention (PSA) framework.}
+PSA adaptively allocates attention computation across hierarchical KV representations (green; lighter shades denote coarser levels). The multi-level mask (blue) determines which KV level each query block attends to. As illustrated, the current attention block assigned to level~4 uses the coarsest KV representation $K_j^4$ and $V_j^4$.}
+\vspace{-0.5cm}
+\label{fig:framework}
+\end{figure}
+
+\subsection{Problem Definition and Notation}
+
+We consider the standard attention formulation with query, key, and value sequences 
+$Q \in \mathbb{R}^{N \times d}$, $K, V \in \mathbb{R}^{N \times d}$,
+where $N$ is  the sequence length and $d$ is the hidden dimension.
+The full attention is computed as
+\begin{equation}
+\mathrm{Attn}(Q, K, V) = \mathrm{Softmax}\!\left(\frac{QK^\top}{\sqrt{d}}\right)V,
+\end{equation}
+whose quadratic complexity $O(N^2)$ becomes the bottleneck for long sequences, for example in video understanding or generation.
+
+To reduce computation and scale attention to long sequences, block sparse attention is commonly adopted to restrict attention computation to a subset of token blocks. The query and KV sequences are divided into non-overlapping blocks of size $b_q$ and $b_k$, resulting in $n_q = N / b_q$ query blocks and $n_k = N / b_k$ KV blocks. The attention is then computed block-wise between query blocks $\{Q_i\}_{i=1}^{n_q}$ and KV blocks $\{(K_j, V_j)\}_{j=1}^{n_k}$.
+
+A binary attention mask 
+$M \in \{0,1\}^{n_q \times n_k}$
+is typically used in block sparse attention, where $M_{ij}=1$ indicates that query block $Q_i$ attends to KV block $(K_j,V_j)$.
+However, such binary masking enforces a hard keep-or-drop decision, which not only causes information loss from discarded regions but also limits how computation can be flexibly allocated across blocks of varying importance.
+
+To address this limitation, we introduce a multi-level representation of KV blocks and a multi-level mask $M \in \{0, 1, \ldots, H\}^{n_q \times n_k}$, allowing a hierarchical and adaptive sparsity control.
+This serves as the foundation of our proposed PSA, which dynamically allocates compute budget across coarse-to-fine levels. 
+We detail the key design components in the following sections.
+
+\subsection{Pyramid KV Blocks}
+
+To construct multi-level KV representations, we build a hierarchical pyramid of $H$ levels by progressively pooling along the sequence dimension:
+\begin{align}
+K_i^{1} &= K_i, \quad &K_i^{h+1} = \mathrm{MeanPool}(K_i^{h}, 2, 2),\\
+V_i^{1} &= V_i, \quad &V_i^{h+1} = \mathrm{MeanPool}(V_i^{h}, 2, 2),
+\end{align}
+where $\mathrm{MeanPool}(x, k, s)$ denotes 1D mean pooling with kernel size $k$ and stride $s$ along the sequence dimension.
+
+Through this process, we obtain sets of pyramid KV blocks
+$\{K_i^1, K_i^2, \dots, K_i^H\}$ and $\{V_i^1, V_i^2, \dots, V_i^H\}$,
+where the $h$-th level block represents a token group of size $\frac{b_k}{2^{h-1}}$.  
+As $h$ increases, the representation becomes increasingly coarser, summarizing broader contextual information within each block.
+This hierarchical pooling reduces the effective KV length by a factor of $2^{h-1}$ at pyramid level $h$, enabling the model to access coarse-to-fine contextual representations and dynamically balance accuracy and efficiency under limited compute budget.
+
+\subsection{Multi-Level Mask Generator}
+
+Given the multi-level KV hierarchy, we estimate the importance of each query–key block pair and generate a multi-level mask to guide adaptive attention computation.
+
+\subsubsection{Block Importance Estimation}
+
+In this step, we compute a lightweight importance score $S_{ij}$ for each query–key block pair $(Q_i, K_j)$, which reflects how crucial it is to preserve fine-grained attention information within that region. To leverage domain-specific characteristics, we employ different importance estimators for video generation and understanding tasks.
+
+For \textbf{video generation}, we employ a sampling-based strategy to approximate block importance efficiently. Specifically, a small subset of tokens is randomly sampled from both the query and key blocks, denoted as $\tilde{Q}_i \in \mathbb{R}^{s_q \times d}$ and $\tilde{K}_j \in \mathbb{R}^{s_k \times d}$, where $s_q \ll b_q$ and $s_k \ll b_k$. The importance score is then estimated as the maximum attention score between the sampled tokens:
+\begin{equation}
+S_{ij} = \max \left(\mathrm{Softmax}\!\left(\frac{\tilde{Q}_i \tilde{K}_j^\top}{\sqrt{d}}\right)\right).
+\end{equation}
+To improve locality and stabilize both the sampling estimation and the pyramid pooling, we apply a Hilbert curve permutation ~\cite{zhang2025spargeattentionaccuratetrainingfreesparse} to the base sequences before computation.
+\label{sec:method-331}
+
+For \textbf{video understanding}, we adopt the antidiagonal scoring ~\cite{xu2025xattentionblocksparseattention}, and introduce intra-block similarity verification to address the relatively low token similarity in video understanding (\cref{fig:adjacent_k_similarity}). This verification compares the cosine similarity of adjacent tokens against level-specific thresholds, which directly sets a maximum acceptable pooling level for the block.\label{videounderstandingtrick}
+
+These variants demonstrate that PSA is agnostic to the specific importance estimator and readily adapts to various architectures and tasks.
+\begin{algorithm}[tb]
+\caption{Computation of PSA}
+\label{alg:psattn}
+\begin{algorithmic}[1]
+\REQUIRE Query blocks $\{Q_i\}_{i=1}^{n_q}$, pyramid KV blocks $\{K_j^h, V_j^h\}_{j=1,h=1}^{n_k,H}$, mask $M$, scale factor $1/\sqrt{d}$
+\ENSURE Output blocks $\{O_i\}_{i=1}^{n_q}$
+\FOR{each query block $Q_i$}
+    \STATE Initialize $o_i \gets 0$, $m_i \gets -\infty$, $l_i \gets 0$
+    \FOR{each key block $K_j$}
+        \STATE $h \gets M_{ij}$
+        \IF{$h = 0$}
+            \STATE \textbf{continue} \COMMENT{Skip pruned block}
+        \ENDIF
+        \STATE $S_{ij} \gets Q_i K_j^{h\top} / \sqrt{d} + (h-1)\ln 2$
+        \STATE $m_{ij} \gets \max(\mathrm{rowmax}(S_{ij}),\, m_i)$
+        \STATE $P_{ij} \gets \exp(S_{ij} - m_{ij})$
+        \STATE $l_{ij} \gets l_i \exp(m_i - m_{ij}) + \mathrm{rowsum}(P_{ij})$
+        \STATE $o_i \gets o_i \exp(m_i - m_{ij}) + P_{ij} V_j^h$
+        \STATE $m_i \gets m_{ij}$,\quad $l_i \gets l_{ij}$
+    \ENDFOR
+    \STATE $O_i \gets o_i / l_i$
+\ENDFOR
+\STATE \textbf{return} $\{O_i\}_{i=1}^{n_q}$
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Multi-Level Mask Assignment}
+
+Based on the estimated importance scores $S$, we generate a multi-level mask $M$ to guide adaptive attention computation, as detailed in \cref{alg:mask}.
+
+%Let $M\in\mathbb{R}^{n_q\times n_k}$ denote the mask matrix. 
+We introduce a \textit{multi-level mask} to assign pyramid levels dynamically.
+Each entry $M_{ij} \in \{0, 1, 2, \dots, H\}$ specifies which level of pyramid KV block $(K_j, V_j)$ should be fetched when computing attention for the query block $Q_i$:
+\begin{equation}
+M_{ij}=h>0 \Rightarrow \text{use } K^h_j, V^h_j, \quad
+M_{ij}=0 \Rightarrow \text{skip.}
+\label{eq:mask}
+\end{equation}
+A larger $h$ indicates lower block importance and coarser KV representations, while $M_{ij}=0$ corresponds to skipping the block. This formulation allows a gradual degradation of precision instead of a binary drop, effectively mitigating abrupt information loss at high sparsity.
+
+We leverage a threshold-based masking strategy to flexibly control the sparsity among query blocks. Specifically, we first normalize the importance scores $S$ row-wise, and then compute the cumulative scores $\hat{S}_{ij}$ by summing the descending sorted importance scores for each query block.
+
+% \begin{align}
+% E_{ij} & = \frac{S_{ij}}{\sum_{j=1}^{n_k} S_{ij}}.\\
+% \hat E_{ij} & = \sum_{k=0}^{\hat{j}} \text{sort}(E_{i,:})_{k}.
+% \end{align}
+% which $\hat{j}$ denotes the index of $E_{ij}$ in the sorted order of row $i$.
+
+To translate these cumulative scores into multi-level sparsity, we define a set of thresholds as hyper-parameters that determine the pyramid level assignment. For a pyramid with $H$ levels, the thresholds are defined as:
+\begin{equation}
+T = {\tau_1, \tau_2, \dots, \tau_H}, \quad 0 \le \tau_1 \le \tau_2 \le \cdots \le \tau_H \le 1.
+\end{equation}
+These thresholds specify the score budgets allocated to each level, enabling fine-grained sparsity control. The pyramid level for each query–key block pair is assigned as:
+\begin{equation}
+M_{ij} =
+\begin{cases}
+\min\{\,t \mid \hat S_{ij} \le \tau_t\,\}, & \text{if } \hat S_{ij} \le \tau_H\\
+0, & \text{if } \hat S_{ij} > \tau_H.
+\end{cases}
+\end{equation}
+
+Unlike quantile-based strategies with fixed per-level quotas, our threshold-based strategy dynamically adjusts sparsity according to the cumulative importance score distribution of each query.
+This adaptive mechanism allows flexible computation allocation and leads to more accurate attention estimation (see~\cref{sec:ablate_reorder_mask} for analysis).
+
+\begin{algorithm}[tb]
+\caption{Multi-Level Mask Assignment}
+\label{alg:mask}
+\begin{algorithmic}[1]
+\REQUIRE Importance map $S \in \mathbb{R}^{n_q \times n_k}$, thresholds $T=\{\tau_1,\dots,\tau_H\}$
+\ENSURE Multi-level mask $M \in \{0,\dots,H\}^{n_q \times n_k}$
+\STATE $M \gets \mathrm{zeros\_like}(S)$
+\FOR{$i = 1$ \textbf{to} $n_q$}
+    \STATE $E_i \gets S_i / \sum_j S_{ij}$ \COMMENT{Normalize row}
+    \STATE $(E_i',\, \pi_i) \gets \mathrm{sort\_desc}(E_i)$
+    \STATE $\hat{E}_i \gets \mathrm{cumsum}(E_i')$
+    \FOR{$j = 1$ \textbf{to} $n_k$}
+        \STATE $j' \gets \pi_i(j)$ \COMMENT{Map to sorted index}
+        \IF{$\hat{E}_{ij'} > \tau_H$}
+            \STATE $M_{ij} \gets 0$
+        \ELSE
+            \STATE $M_{ij} \gets \min \{ t \mid \hat{E}_{ij'} \le \tau_t \}$
+        \ENDIF
+    \ENDFOR
+\ENDFOR
+\STATE \textbf{return} $M$
+\end{algorithmic}
+\end{algorithm}
+
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\textwidth]{figures/videodemo.jpg}
+    \caption{
+    \textbf{Qualitative comparison on Wan2.1-1.3B (Text-to-Video, 720p).}
+    }
+    \label{fig:wan2.1_1.3b_sampled_videosl}
+    % \vspace{-1em}
+\end{figure*}
+\subsection{Adaptive Pyramid Attention}
+
+With the pyramid KV representations and the multi-level mask constructed, we now compute the attention in a block-wise manner. For each block, we fetch the corresponding key/value block based on the assigned pyramid level in the mask according to~\cref{eq:mask} and compute attention accordingly.
+
+However, KV blocks in level $h$ have reduced sequence lengths due to pooling, meaning each token in $K^h_j$ represents an aggregated context of $2^{h-1}$ original tokens. To maintain consistent probability distribution in attention weights after softmax, we introduce a scaling factor of ${2^{h-1}}$ to the attention scores. This is efficiently implemented by adding a bias term $(h-1) \ln 2$ to the attention logits before softmax normalization.
+
+Specifically, the attention score between query block $Q_i$ and key block $K_j$ at level $h$ is computed as:
+
+\begin{equation}
+A_{ij} = \mathrm{Softmax}\!\left(\frac{Q_i K_j^{h\top}}{\sqrt{d}} + (h-1)\ln 2 \right).
+\end{equation}
+The mechanism is detailed in~\cref{alg:psattn}.
+
+\noindent\textbf{Complexity analysis.}
+At pooling level $h$, the effective sequence length of each KV block is reduced by a factor of $2^{h-1}$, resulting in an attention cost of $O(b_q b_k / 2^{h-1})$ for that attention block.
+
+Aggregating across all levels based on the mask distribution yields an overall expected complexity of $O(\bar{\rho} N^2)$, where $\bar{\rho}$ is the effective sparsity ratio induced by the multi-level mask:
+
+\begin{equation}
+\bar{\rho} = \frac{1}{n_q n_k} \sum_{i=1}^{n_q} \sum_{j=1}^{n_k} \rho_{ij}, \\
+\text{with } \rho_{ij} = \begin{cases}\frac{1}{2^{M_{ij}-1}}, & M_{ij} > 0\\0, & M_{ij} = 0\end{cases}
+\end{equation}
+
+Compared with standard block-sparse-based attention mechanisms, PSA distributes the same compute budget more efficiently—assigning finer-grained attention to informative regions and coarser attention to redundant ones.
+This adaptive allocation allows the model to retain more critical details under the same computational cost, improving representational fidelity without increasing total FLOPs.
+
+
+\subsection{Hardware-Optimized Kernel Design}
+\label{sec:kernel-design}
+
+To ensure that PSA can be deployed efficiently on modern accelerators, we complement the algorithmic design with a hardware-aware implementation. The key challenge is that existing implementations often couple the logical block size with the hardware tile size, although these two hyper-parameters serve fundamentally different purposes. The block size captures the logical grouping of tokens while the tile size must be selected to maximize hardware throughput. This mismatch becomes especially pronounced in PSA because KV block pooling produces heterogeneous and often small blocks at coarser pyramid levels. Using these various block sizes directly as the execution tile leads to low compute utilization or warp divergence when the tile configuration changes dynamically.
+
+To resolve this issue, we adopt a \textbf{decoupled block-tile design} that separates logical sequence blocks from the execution tiles used by the kernel. Building on a modified FlashAttention kernel, blocks are flexibly split or merged to match a hardware-optimized tile size. This approach allows the block size to follow the attention pattern while the tile size is tuned independently for accelerator efficiency. The design integrates seamlessly with kernel fusion, optimized memory access, and fine-grained parallelization.
+
+
+The decoupled design offers broad compatibility with attention mechanisms for blocked sequences, enabling them to handle heterogeneous block structures while maintaining hardware efficiency.
+In practice, our kernel preserves high tensor-core utilization even for small pooled blocks, avoids divergence across pooling levels, and achieves up to a \textbf{10$\times$} speedup over a naive PSA implementation on NVIDIA H200.

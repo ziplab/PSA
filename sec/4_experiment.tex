@@ -1,0 +1,259 @@
+\begin{table*}[!htbp]
+\centering
+\footnotesize
+\caption{\textbf{Quantitative comparison on Wan-series models in training-free videogen experiments.}
+We report similarity metrics (PSNR, SSIM, LPIPS) and perceptual quality measures (Aesthetic Quality (Aes.), Background Consistency (Bkg.), and Imaging Quality (Img.)) from VBench~\cite{huang2023vbenchcomprehensivebenchmarksuite}.
+Latency represents the average generation time per video. For clarity, the \textbf{best} result among all sparse methods under each metric is \textbf{bolded}, and the \textbf{second-best} is \underline{underlined}.}
+
+\vspace{3pt}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{c|c|cccccc|cc}
+\toprule
+\textbf{Model} & \textbf{Method} & \textbf{PSNR}$\uparrow$ & \textbf{SSIM}$\uparrow$ & \textbf{LPIPS}$\downarrow$ & \textbf{Aes.$\uparrow$} & \textbf{Bkg.$\uparrow$} & \textbf{Img.$\uparrow$}  & \textbf{Sparsity} & \textbf{Latency(s)} \\
+\midrule
+
+\multirow{6}{*}{\textbf{Wan 2.1 1.3B}} 
+ & Full   & -- & -- & -- & 0.6489 & 0.9645 & 0.6557 & -- & 327 \\
+  \cline{2-10}
+ & SVG2  & \best{25.21} & \best{0.801} & \underline{0.126} & 0.6185 & \underline{0.9548} & 0.5545 & 0.91 & 187 \\
+ & SVG   & 17.57 & 0.567 & 0.399 & 0.5039 & 0.9444 & 0.5974 & 0.85 & 165 \\
+ & Sparge & 22.83 & 0.736 & 0.177 & 0.6232 & 0.9476 & 0.6409 & 0.90 & 165 \\
+ & STA   & 20.56 & 0.677 & 0.197 & \underline{0.6521} & 0.9419 & \underline{0.6501} & 0.83 & 162 \\
+\rowcolor{rowblue}
+ & PSA(Ours)   & \underline{24.36} & \underline{0.788} & \best{0.121} &\textbf{0.6686} &\textbf{0.9612} & \textbf{0.6607}& 0.91 & 176 \\
+\midrule
+
+\multirow{5}{*}{\makecell{\textbf{Wan 2.2 5B}\\[0.2em]\small (1280 $\times$ 704, 121 frames)}}
+
+ & Full   & -- & -- & -- & 0.6598 & 0.9564 & 0.6547 & -- & 168 \\
+  \cline{2-10}
+ & SVG2  & \textbf{24.25} & \textbf{0.818} & \textbf{0.092} & \underline{0.6495} & \underline{0.9518} & \underline{0.6025} & 0.90 & 149 \\
+ & SVG   & 18.89 & 0.645 & 0.266 & 0.5539 & 0.9386 & 0.5877 & 0.86 & 122 \\
+ & Sparge & 19.53 & 0.660 & 0.229 & 0.5482 & 0.9289 & 0.5650 & 0.89 & 124 \\
+\rowcolor{rowblue}
+ & PSA(Ours)   & \underline{23.03} & \underline{0.794} & \underline{0.096} & \textbf{0.6588} & \textbf{0.9569} & \textbf{0.6438} & 0.89 & 131 \\
+\midrule
+
+\multirow{6}{*}{\textbf{Wan 2.1 14B}} 
+ & Full   & -- & -- & -- & 0.6918 & 0.9639 & 0.6247 & -- & 1548 \\
+ \cline{2-10}
+ & SVG2  & \textbf{24.79} & \textbf{0.807} & \textbf{0.085} & \underline{0.6614} & \underline{0.9439} & 0.5555 & 0.87 & 913 \\
+ & SVG   & 19.84 & 0.649 & 0.300 & 0.5337 & \textbf{0.9501} & 0.5479 & 0.85 & 830 \\
+ & Sparge & 22.19 & 0.737 & 0.182 & 0.6083 & 0.8779 & 0.5977 & 0.88 & 855 \\
+ & STA   & 20.83 & 0.694 & 0.185 & 0.6544 & 0.9399 & \textbf{0.6489} & 0.83 & 815 \\
+\rowcolor{rowblue}
+ & PSA(Ours)   & \underline{23.83} & \underline{0.768} & \underline{0.105} & \textbf{0.6776} & 0.9261 & \underline{0.6400} & 0.88 & 887 \\
+\bottomrule
+\end{tabular}
+}
+\label{tab:videogen-results}
+\vspace{-4pt}
+\end{table*}
+
+\label{sec:experiments}
+
+
+\section{Experiments}
+
+
+
+\subsection{Experimental Settings}
+
+\textbf{Models.} We evaluate PSA on open-source video generation models and video understanding models: Wan2.1-\{1.3B, 14B\}~\cite{wan2025wanopenadvancedlargescale}, Wan2.2-5B~\cite{wan2025wanopenadvancedlargescale}, CogVideoX-5B~\cite{hong2022cogvideolargescalepretrainingtexttovideo}, and Qwen2.5-VL-7B~\cite{qwen2025qwen25technicalreport}. 
+
+
+\noindent\textbf{Baselines.}
+We compare our method, Pyramid Sparse Attention (PSA), against several representative sparse attention baselines, including 
+Sparse VideoGen (SVG)~\cite{xi2025sparsevideogenacceleratingvideo}, 
+Sparse VideoGen2 (SVG2)~\cite{yang2025sparsevideogen2acceleratevideo}, 
+Sliding-Tile Attention (STA)~\cite{zhang2025fastvideogenerationsliding}, 
+SpargeAttention (Sparge)~\cite{zhang2025spargeattentionaccuratetrainingfreesparse}, and
+XAttention~\cite{xu2025xattentionblocksparseattention}.
+For brevity, we use abbreviated names (e.g., SVG2, STA, PSA) throughout the remainder of this section.
+
+
+\noindent\textbf{Implementation details.}
+All experiments are conducted on NVIDIA H200 GPUs. Unless stated, videos are generated at 1280×768 / 69 frames. 
+% In the training-free video generation experiments, 
+% FlashAttention-2~\cite{dao2023flashattention2fasterattentionbetter} serves as the dense baseline and is also used for warm-up runs. 
+All sparse baselines are evaluated using their official implementations without any additional optimization tricks.
+In video understanding experiments, PSA reuses the same block-importance estimation based on antidiagonal scoring and incorporates an additional similarity-based constraint, as detailed in 
+\cref{sec:method-331}
+. All sparse attention mechanisms are applied only during the prefill stage.
+
+\noindent\textbf{On sparsity accounting.}
+PSA allocates multi-level compute to KV blocks rather than using binary keep/drop 
+strategy; its reported sparsity thus denotes the sparsity of 
+BSA-based method that uses the same compute budget.
+
+\noindent\textbf{Metrics and dataset.}
+For the training-free video generation experiments, we evaluate the similarity between the generated videos and their full-attention counterparts using Peak Signal-to-Noise Ratio (PSNR), Structural Similarity Index Measure (SSIM), and Learned Perceptual Image Patch Similarity (LPIPS)~\cite{zhang2018unreasonableeffectivenessdeepfeatures}. 
+Beyond these similarity measures, we further adopt three perceptual dimensions from the VBench Score~\cite{huang2023vbenchcomprehensivebenchmarksuite}---widely used in recent video generation benchmarks to assess visual quality: 
+Aesthetic Quality (Aes.),  
+Background Consistency (Bkg.), 
+and Imaging Quality (Img.). 
+
+
+For the distillation experiments on CogvideoX-5B~\cite{hong2022cogvideolargescalepretrainingtexttovideo}, we primarily use the VBench Score to measure the perceptual quality of videos generated by distilled models.
+Our distillation process is guided by a dataset of 10,000 text prompts, sampled from the JourneyDB benchmark~\cite{sun2023journeydbbenchmarkgenerativeimage}. 
+To enhance prompt quality and diversity, each sample is refined using the Qwen2.5-3B-Instruct model~\cite{qwen2025qwen25technicalreport}.
+
+For video understanding, we adopt the Video-MME (1fps) dataset~\cite{fu2025videommefirstevercomprehensiveevaluation} to evaluate the performance of Qwen2.5-VL-7B in video understanding scenarios.
+
+
+
+
+\subsection{Training-Free Video Generation}
+\begin{table}[h!]
+\centering
+\vspace{-4pt}
+\caption{Combining PSA with TDM on CogVideoX-5B.}
+\label{tab:distillation}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccc}
+\toprule
+\textbf{Method} & \textbf{Sparsity} & \textbf{Sampling Steps} & \textbf{VBench Score} \\
+\midrule
+FullAttn & -- & 50 & 0.819 \\
+Distill-only & -- & \textbf{4} & 0.818 \\
+\textbf{Ours} & $\mathbf{0.85}$ & \textbf{4} & \textbf{0.826} \\
+\bottomrule
+\end{tabular}%
+} 
+\vspace{-2pt}
+\end{table}
+\begin{table}[h!]
+\centering
+\vspace{-1pt}
+\caption{
+{Comparison of attention mechanisms on Video-MME.}
+% PSA achieves the most balanced performance across short, medium, and long sequences while maintaining competitive sparsity.
+}
+
+\label{tab:video_nderstanding}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Method} & \textbf{Short} & \textbf{Medium} & \textbf{Long} & \textbf{Overall} & \textbf{Sparsity} \\
+\midrule
+Full Attention & \textbf{0.752} & 0.663 & 0.537 & 0.651 & --- \\
+\hline
+XAttention & 0.748 & 0.661 & \textbf{0.544} & 0.651 & 0.58 \\
+SpargeAttention & 0.749 & 0.663 & 0.539 & 0.650 & 0.37 \\
+\hline
+\textbf{PSA(Ours)} & 0.748 & \textbf{0.673} & 0.542 & \textbf{0.654} & \textbf{0.65} \\
+\bottomrule
+\end{tabular}%
+}
+\vspace{-2pt}
+\end{table}
+\label{traingfreevideogen}
+A qualitative comparison of sparse attention mechanisms is shown in \cref{fig:wan2.1_1.3b_sampled_videosl}. All methods use the same text-to-video scene (a couple walking under a red umbrella in the rain) under similar sparsity. STA~\cite{zhang2025fastvideogenerationsliding} exhibits structure jumps and identity swaps across frames; SVG~\cite{xi2025sparsevideogenacceleratingvideo}collapses at high sparsity with random color blocks; SVG2~\cite{yang2025sparsevideogen2acceleratevideo} is more stable but overly smooth with distorted backgrounds; Sparge~\cite{zhang2025spargeattentionaccuratetrainingfreesparse} preserves layout yet shows local color distortions; Full Attention remains high-fidelity but costly. In contrast, PSA at 0.91 sparsity maintains sharp details and temporal coherence (stable contours, saturated umbrella, natural reflections), approaching the dense baseline’s visual quality with far less computation.
+
+\cref{tab:videogen-results} further shows that under comparable high sparsity, PSA consistently surpasses SVG, STA, and Sparge on all similarity metrics (PSNR/SSIM/LPIPS) and on most perceptual axes (Aes./Bkg./Img.) across model sizes. 
+Against the strongest training-free baseline SVG2, PSA delivers \emph{clearly better perceptual quality} at high sparsity---higher Aesthetic and Imaging scores on \emph{all} model sizes ---while keeping similarity metrics within small margins. 
+Together with the visuals in \cref{fig:wan2.1_1.3b_sampled_videosl}, these results indicate that PSA is the \emph{most quality-preserving} sparse attention mechanism at high sparsity among all compared methods. Additional visual comparisons are provided in the appendix.
+
+
+
+
+
+
+\subsection{Distillation}
+
+To explore the generality of PSA and achieve maximum inference acceleration, we combined our method with the \textit{data-free} distillation technique TDM~\cite{luo2025learningfewstepdiffusionmodels,gu2025bladeblocksparseattentionmeets}. We integrated PSA into the student model during the distillation training phase. As shown in~\cref{tab:distillation}, this simple combination achieves a $30.2\times$ denoising time speedup over the original 50-step model, without any loss in generation quality.
+
+
+
+Our combined approach, using $85\%$ sparsity, achieves the highest VBench score (0.826). This surpasses both the 4-step distilled baseline and even the original 50-step model. This result demonstrates that PSA is a highly compatible plug-and-play module that can be compounded with other methods like distillation to maximize inference efficiency.
+% LaTeX Table for Distillation Results
+
+\begin{table}[h!]
+\centering
+\caption{Comparison of multi-level vs.\ binary  masking on Wan2.1-1.3B (480p, training-free). 
+The first 25\% of sampling steps do not use sparse attention.
+$T=\{\tau_1,\dots,\tau_H\}$ are the cumulative  thresholds for level assignment.}
+\label{tab:ablation_multilevel_mask}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccccl}
+\toprule
+\textbf{Method} & \textbf{Sparsity}$\uparrow$ & \textbf{PSNR}$\uparrow$ & \textbf{SSIM}$\uparrow$ & \textbf{LPIPS}$\downarrow$ \\
+\midrule
+Multi-level mask & \textbf{0.79} & \textbf{23.35} & \textbf{0.856} & \textbf{0.116} \\
+Binary mask & 0.75 & 23.11 & 0.851 & 0.122  \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+\begin{table}[h!]
+\vspace{-4pt}
+\centering
+\caption{Ablation of reordering and mask-generation strategy on Wan2.1-1.3B (480p).}
+\label{tab:ablate_reorder_mask}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{llcccc}
+\toprule
+\textbf{Mode} & \textbf{Reorder} & \textbf{Sparsity}$\uparrow$ & \textbf{PSNR}$\uparrow$ & \textbf{SSIM}$\uparrow$ & \textbf{LPIPS}$\downarrow$ 
+\\
+\midrule
+Threshold-based         & Hilbert & 0.84 & \textbf{23.78} & \textbf{0.811} & \textbf{0.085} \\
+Quantile-based                & Hilbert & 0.85 & 22.54 & 0.775 & 0.118 \\
+Quantile-based & None    & 0.85 & 21.81 & 0.707 & 0.201 \\
+\bottomrule
+\end{tabular}%
+}
+\vspace{-8pt}
+\end{table}
+\subsection{Training-Free Video Understanding}
+
+% On Qwen2.5-VL-7B, PSA achieves the highest overall accuracy (0.654) on Video-MME, surpassing the dense FA2 baseline (0.651) and all sparse baselines, while using the largest sparsity (0.65). It attains the best Medium score (0.673), competitive Short (0.748 vs.\ 0.752 for FA2), and improved Long (0.542 vs.\ 0.537 for FA2; second only to XAttention at 0.544). These results indicate that PSA preserves or improves the performance of video understanding model at substantially higher sparsity, demonstrating the strongest quality-preserving sparsity among compared methods in the training-free setting.
+On Qwen2.5-VL-7B, PSA delivers the best overall performance on Video-MME~\cite{fu2025videommefirstevercomprehensiveevaluation} under 
+\textbf{the highest sparsity level (0.65)}. As shown in \cref{tab:video_nderstanding}, it matches or exceeds the full baseline 
+across most categories---notably improving the \textit{Medium} and \textit{Long-Video} 
+scores---while remaining competitive on \textit{Short Video}. These results show that 
+PSA preserves (and in some cases improves) video-understanding quality at 
+substantially higher sparsity, demonstrating the strongest quality-retaining 
+sparsity among all compared methods in the training-free setting.
+
+
+\subsection{Ablation Study}
+
+% $\{0.85,\,0.85,\,0.85,\,0.85\}$  & $\{0.70,\,0.80,\,0.90,\,0.90\}$ & \textbf{Thresholds }$T=\{\tau_1,\dots,\tau_H\}$ 
+\noindent 
+
+\noindent\textbf{Effectiveness of multi-level mask vs.\ binary mask.} In terms of configuration, the multi-level mask group is set to $T=\{0.70,\,0.80,\,0.90,\,0.90\}$, 
+while binary mask uses level ratios $T=\{0.85,\,0.85,\,0.85,\,0.85\}$, which means that only dense KV blocks are kept and no pooled representation is used.
+
+
+On Wan2.1-1.3B (480p, training-free), we compare our multi-level masking  with a conventional 0/1 binary mask. The first 25\% of sampling steps do not use sparse attention.
+% As shown in ~\cref{tab:ablation_multilevel_mask}, PSA achieves higher PSNR (23.35 vs.\ 23.11), higher SSIM (0.8561 vs.\ 0.8514), and lower LPIPS (0.1164 vs.\ 0.1221) under even higher sparsity. 
+As shown in ~\cref{tab:ablation_multilevel_mask}, PSA yields improved PSNR and SSIM, and reduced LPIPS, despite operating under a higher sparsity setting than the baselines.
+
+\noindent\textbf{Reordering \& mask strategy (Videogen).} \label{sec:ablate_reorder_mask}
+We evaluate different reordering and mask-generation strategies on Wan2.1-1.3B (480p, training-free setting) and the first 25\% of sampling steps do not use sparse attention.
+
+We compare two multi-level masking rules (threshold-based  vs.\ quantile-based) and the role of token reordering. 
+%Quantile-based: for each query row, sort block importance $S_{i,:}$ and assign 
+The quantile-based rule processes each query row by sorting 
+block importance $S_{i,:}$ and assigning 
+%level 
+pooling degrees by fixed percentile cut points $0<a<b<c\le d\le 1$ (e.g., $[0,a)\!\to\!1$, $[a,b)\!\to\!2$, $[b,c)\!\to\!3$, $[c,d)\!\to\!4$, $(d,1]\!\to\!0$). 
+For reordering, we follow SpargeAttention and apply a HilbertCurve permutation to  $Q, K, V $~\cite{zhang2025spargeattentionaccuratetrainingfreesparse}. Hilbert denotes a Hilbert-curve–based permutation, while None indicates no reordering.
+
+% \noindent Configs. 
+% The Energy-bound thresholds are set to $T=\{0.40,0.60,0.80,0.90\}$, 
+% while Top-$k$ uses level ratios $C=\{0.10,0.15,0.25,0.25\}$.
+
+% \noindent Key result.
+As shown in ~\cref{tab:ablate_reorder_mask}, under near-matched sparsity, 
+Threshold-based + reordering consistently outperforms quantile-based + reordering in reconstruction quality. 
+Removing the reordering step from the quantile-based variant further degrades results. 
+As observed in SpargeAttention~\cite{zhang2025spargeattentionaccuratetrainingfreesparse}, 
+this reordering operation enhances the similarity between adjacent tokens. 
+When incorporated into PSA, this property naturally complements the hierarchical pooling mechanism, 
+as higher local token similarity leads to smoother multi-level aggregation and more stable reconstruction under high sparsity. 
+In contrast to the quantile-based rule, the threshold-based strategy dynamically adjusts the proportion of each mask based on the input distribution, 
+allowing PSA to better adapt to diverse sparsity patterns and preserve visual fidelity.
+
+\noindent Additional ablations on the similarity constraint and variable block sizes, which also influence the performance of PSA, are presented in the supplementary material 
+% due to space limitation.
