@@ -1,0 +1,5 @@
+Question:
+Who was trying to eat the little duckling, and who was trying to save it? Answer briefly: just say the names with(save duck or eat duck) respectively.
+Tom (eat duck), Jerry (save duck).
+video时长:26分钟 
+PSA稀疏度:sparsity 0.74

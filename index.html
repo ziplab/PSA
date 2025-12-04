@@ -335,7 +335,7 @@
 
                 <!-- Subtitle -->
                 <p class="blur-reveal blur-reveal-delay-1 text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto mb-8 leading-relaxed">
-                    A versatile sparse attention module for efficient video understanding and generation
+                    Pyramid Sparse Attention for Efficient Video Understanding and Generation
                 </p>
 
                 <!-- Authors -->
@@ -343,7 +343,7 @@
                     <div class="flex flex-wrap justify-center gap-x-6 gap-y-2 text-lg text-gray-700 mb-3">
                         <span class="font-medium">Xiaolong Li<sup class="text-indigo-500">*</sup></span>
                         <span class="font-medium">Youping Gu<sup class="text-indigo-500">*</sup></span>
-                        <span class="font-medium">Xi Lin</span>
+                        <span class="font-medium">Xi Lin<sup class="text-indigo-500">*</sup></span>
                         <span class="font-medium">Weijie Wang</span>
                         <span class="font-medium">Bohan Zhuang</span>
                     </div>
@@ -357,20 +357,16 @@
 
                 <!-- Action Buttons -->
                 <div class="blur-reveal blur-reveal-delay-3 flex flex-wrap justify-center gap-4">
-                    <a href="#" class="pill-btn glass-card px-8 py-4 rounded-full flex items-center gap-3 text-gray-800 font-medium hover:bg-white/80">
+                    <a href="https://arxiv.org/abs/2512.04025" target="_blank" class="pill-btn glass-card px-8 py-4 rounded-full flex items-center gap-3 text-gray-800 font-medium hover:bg-white/80">
                         <i class="fa-solid fa-file-pdf text-red-500"></i>
                         Paper
                     </a>
-                    <a href="#" class="pill-btn glass-card px-8 py-4 rounded-full flex items-center gap-3 text-gray-800 font-medium hover:bg-white/80">
+                    <a href="https://github.com/ziplab/Pyramid-Sparse-Attention" target="_blank" class="pill-btn glass-card px-8 py-4 rounded-full flex items-center gap-3 text-gray-800 font-medium hover:bg-white/80">
                         <i class="fa-brands fa-github"></i>
                         Code
                     </a>
-                    <a href="#" class="pill-btn glass-card px-8 py-4 rounded-full flex items-center gap-3 text-gray-800 font-medium hover:bg-white/80">
-                        <i class="fa-solid fa-play text-indigo-500"></i>
-                        Demo
-                    </a>
-                    <a href="#" class="pill-btn glass-card px-8 py-4 rounded-full flex items-center gap-3 text-gray-800 font-medium hover:bg-white/80">
-                        <i class="fa-solid fa-database text-emerald-500"></i>
+                    <a href="https://huggingface.co/GYP666/BLADE" target="_blank" class="pill-btn glass-card px-8 py-4 rounded-full flex items-center gap-3 text-gray-800 font-medium hover:bg-white/80">
+                        <i class="fa-solid fa-cube text-yellow-500"></i>
                         Model Weights
                     </a>
                 </div>
@@ -415,138 +411,132 @@
 
                 <!-- Demo A: Video Generation -->
                 <div class="glass-card rounded-3xl p-8 mb-12 section-fade">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-2xl font-bold text-gray-800">
-                            <i class="fa-solid fa-video text-indigo-500 mr-3"></i>
-                            Video Generation Comparison
-                        </h3>
-                        <div class="speed-badge glass-card px-4 py-2 rounded-full text-emerald-600 font-bold text-sm">
-                            ⚡️ 1.9x Faster
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
+                        <div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-2">
+                                <i class="fa-solid fa-video text-indigo-500 mr-3"></i>
+                                Video Generation
+                            </h3>
+                            <p class="text-gray-500 text-sm">PSA combined with step distillation</p>
+                        </div>
+                        <div class="speed-badge glass-card px-6 py-3 rounded-full flex items-center gap-3">
+                            <span class="text-3xl font-black bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">30.2x</span>
+                            <span class="text-gray-600 font-medium">Faster</span>
                         </div>
                     </div>
 
-                    <div class="grid md:grid-cols-2 gap-6">
-                        <!-- Baseline Video -->
-                        <div class="space-y-3">
-                            <div class="flex items-center gap-2 text-gray-600">
-                                <span class="w-3 h-3 rounded-full bg-gray-400"></span>
-                                <span class="font-medium">Baseline (Full Attention)</span>
-                            </div>
-                            <div class="video-container aspect-video flex items-center justify-center">
-                                <video id="baseline-video" class="w-full h-full object-cover" muted playsinline>
-                                    <source src="" type="video/mp4">
-                                </video>
-                                <div id="baseline-placeholder" class="absolute inset-0 flex items-center justify-center text-gray-400">
-                                    <div class="text-center">
-                                        <i class="fa-solid fa-film text-4xl mb-2"></i>
-                                        <p>Baseline Video</p>
-                                    </div>
-                                </div>
-                            </div>
+                    <!-- Single Comparison Video -->
+                    <div class="relative">
+                        <div class="video-container rounded-2xl overflow-hidden">
+                            <video id="videogen-demo" class="w-full h-auto" controls playsinline>
+                                <source src="video_gen/file_v3_00sd_42f4bc86-b9d6-4dda-accc-169b3f32256g.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
                         </div>
-
-                        <!-- Ours Video -->
-                        <div class="space-y-3">
-                            <div class="flex items-center gap-2 text-gray-600">
-                                <span class="w-3 h-3 rounded-full bg-indigo-500"></span>
-                                <span class="font-medium">Ours (PSA + TDM)</span>
-                            </div>
-                            <div class="video-container aspect-video flex items-center justify-center relative">
-                                <video id="ours-video" class="w-full h-full object-cover" muted playsinline>
-                                    <source src="" type="video/mp4">
-                                </video>
-                                <div id="ours-placeholder" class="absolute inset-0 flex items-center justify-center text-gray-400">
-                                    <div class="text-center">
-                                        <i class="fa-solid fa-film text-4xl mb-2"></i>
-                                        <p>Our Video</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Play Button -->
-                    <div class="flex justify-center mt-8">
-                        <button id="play-videos-btn" class="pill-btn bg-indigo-600 text-white px-8 py-4 rounded-full flex items-center gap-3 font-medium hover:bg-indigo-700">
-                            <i class="fa-solid fa-play"></i>
-                            Play Both Videos
-                        </button>
+                        <p class="text-gray-500 text-sm text-center mt-4">
+                            Side-by-side comparison: Full Attention (50 steps) vs PSA + TDM (4 steps, 85% sparsity)
+                        </p>
                     </div>
                 </div>
 
                 <!-- Demo B: Video Understanding -->
                 <div class="glass-card rounded-3xl p-8 section-fade">
-                    <h3 class="text-2xl font-bold text-gray-800 mb-6">
-                        <i class="fa-solid fa-comments text-indigo-500 mr-3"></i>
-                        Video Understanding Latency Race
-                    </h3>
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
+                        <div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-2">
+                                <i class="fa-solid fa-brain text-indigo-500 mr-3"></i>
+                                Video Understanding
+                            </h3>
+                            <p class="text-gray-500 text-sm">Long video comprehension with Qwen2.5-VL</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="glass-card px-4 py-2 rounded-full text-sm font-medium text-gray-600">
+                                <i class="fa-solid fa-clock mr-2"></i>26 min video
+                            </span>
+                            <span class="glass-card px-4 py-2 rounded-full text-sm font-bold text-emerald-600">
+                                0.74 Sparsity
+                            </span>
+                        </div>
+                    </div>
 
-                    <div class="grid md:grid-cols-2 gap-8">
-                        <!-- Baseline Chat -->
-                        <div class="space-y-4">
-                            <div class="flex items-center gap-2 text-gray-600 mb-4">
-                                <span class="w-3 h-3 rounded-full bg-gray-400"></span>
-                                <span class="font-medium">Baseline Model</span>
-                            </div>
-
-                            <div class="glass-card-dark rounded-2xl p-6 min-h-[300px]">
-                                <!-- User Message -->
-                                <div class="flex justify-end mb-4">
-                                    <div class="chat-bubble user rounded-2xl rounded-tr-md px-4 py-3">
-                                        <p class="text-sm">🎥 [Video: A couple walking under a red umbrella in the rain]</p>
-                                        <p class="text-sm mt-2">What is happening in this video?</p>
-                                    </div>
-                                </div>
-
-                                <!-- Assistant Response Area -->
-                                <div class="flex justify-start">
-                                    <div class="chat-bubble assistant rounded-2xl rounded-tl-md px-4 py-3" id="baseline-response">
-                                        <div class="flex items-center gap-2 text-gray-500">
-                                            <div class="spinner" id="baseline-spinner"></div>
-                                            <span>Thinking...</span>
-                                        </div>
-                                        <p class="text-gray-700 hidden" id="baseline-text"></p>
-                                    </div>
-                                </div>
+                    <!-- Video Player -->
+                    <div class="mb-8">
+                        <div class="video-container rounded-2xl overflow-hidden relative max-w-2xl mx-auto">
+                            <video id="understanding-video" class="w-full h-auto" playsinline>
+                                <source src="understanding/TomandJerry.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                            <!-- Small Play Button Overlay -->
+                            <div id="video-overlay" class="absolute inset-0 bg-black/30 flex items-center justify-center cursor-pointer transition-opacity hover:bg-black/40">
+                                <button class="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                                    <i class="fa-solid fa-play text-gray-700 text-sm ml-1"></i>
+                                </button>
                             </div>
                         </div>
+                        <p class="text-gray-400 text-xs text-center mt-3">
+                            <i class="fa-solid fa-info-circle mr-1"></i>
+                            Tom and Jerry - 26 minute episode
+                        </p>
+                    </div>
 
-                        <!-- Ours Chat -->
-                        <div class="space-y-4">
-                            <div class="flex items-center gap-2 text-gray-600 mb-4">
-                                <span class="w-3 h-3 rounded-full bg-indigo-500"></span>
-                                <span class="font-medium">Ours (PSA)</span>
-                                <span class="text-emerald-500 font-bold text-sm ml-2">⚡️ 0.65 Sparsity</span>
+                    <!-- Question -->
+                    <div class="glass-card-dark rounded-2xl p-4 mb-6 max-w-2xl mx-auto">
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-user text-white text-xs"></i>
                             </div>
-
-                            <div class="glass-card-dark rounded-2xl p-6 min-h-[300px]">
-                                <!-- User Message -->
-                                <div class="flex justify-end mb-4">
-                                    <div class="chat-bubble user rounded-2xl rounded-tr-md px-4 py-3">
-                                        <p class="text-sm">🎥 [Video: A couple walking under a red umbrella in the rain]</p>
-                                        <p class="text-sm mt-2">What is happening in this video?</p>
-                                    </div>
-                                </div>
-
-                                <!-- Assistant Response Area -->
-                                <div class="flex justify-start">
-                                    <div class="chat-bubble assistant rounded-2xl rounded-tl-md px-4 py-3" id="ours-response">
-                                        <div class="flex items-center gap-2 text-gray-500" id="ours-spinner-container">
-                                            <div class="spinner" id="ours-spinner"></div>
-                                            <span>Thinking...</span>
-                                        </div>
-                                        <p class="text-gray-700 hidden" id="ours-text"></p>
-                                    </div>
-                                </div>
+                            <div>
+                                <p class="text-gray-700 text-sm font-medium">Who was trying to eat the little duckling, and who was trying to save it?</p>
+                                <p class="text-gray-500 text-xs mt-1">Answer briefly: just say the names.</p>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Prefilling Race Comparison -->
+                    <div class="grid md:grid-cols-2 gap-6 mb-6">
+                        <!-- Baseline -->
+                        <div class="glass-card-dark rounded-2xl p-5">
+                            <div class="flex items-center gap-2 mb-4">
+                                <span class="w-3 h-3 rounded-full bg-gray-400"></span>
+                                <span class="font-medium text-gray-700">Full Attention</span>
+                            </div>
+                            <!-- Progress Bar -->
+                            <div class="h-3 bg-gray-200 rounded-full overflow-hidden mb-3">
+                                <div id="baseline-progress" class="h-full bg-gray-400 rounded-full transition-all duration-100" style="width: 0%"></div>
+                            </div>
+                            <!-- Status -->
+                            <div class="flex items-center gap-2 text-sm" id="baseline-status">
+                                <span class="text-gray-500">Ready</span>
+                            </div>
+                            <!-- Answer -->
+                            <p class="text-gray-700 text-sm mt-3 hidden" id="baseline-answer"></p>
+                        </div>
+
+                        <!-- PSA (Ours) -->
+                        <div class="glass-card-dark rounded-2xl p-5 ring-2 ring-indigo-200">
+                            <div class="flex items-center gap-2 mb-4">
+                                <span class="w-3 h-3 rounded-full bg-indigo-500"></span>
+                                <span class="font-medium text-gray-700">PSA (Ours)</span>
+                                <span class="text-xs text-emerald-500 font-bold">0.74 Sparsity</span>
+                            </div>
+                            <!-- Progress Bar -->
+                            <div class="h-3 bg-indigo-100 rounded-full overflow-hidden mb-3">
+                                <div id="psa-progress" class="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all duration-100" style="width: 0%"></div>
+                            </div>
+                            <!-- Status -->
+                            <div class="flex items-center gap-2 text-sm" id="psa-status">
+                                <span class="text-gray-500">Ready</span>
+                            </div>
+                            <!-- Answer -->
+                            <p class="text-gray-700 text-sm mt-3 hidden" id="psa-answer"></p>
+                        </div>
+                    </div>
+
                     <!-- Start Button -->
-                    <div class="flex justify-center mt-8">
-                        <button id="start-chat-btn" class="pill-btn bg-indigo-600 text-white px-8 py-4 rounded-full flex items-center gap-3 font-medium hover:bg-indigo-700">
+                    <div class="flex justify-center">
+                        <button id="start-understanding-btn" class="pill-btn bg-indigo-600 text-white px-8 py-4 rounded-full flex items-center justify-center gap-3 font-medium hover:bg-indigo-700">
                             <i class="fa-solid fa-bolt"></i>
-                            Start Latency Race
+                            Start Prefilling Race
                         </button>
                     </div>
                 </div>
@@ -1054,19 +1044,25 @@
                 <div class="glass-card rounded-3xl p-8">
                     <h3 class="text-xl font-bold text-gray-800 mb-4">Citation</h3>
                     <div class="bg-white/50 rounded-xl p-4 text-left font-mono text-sm text-gray-600 overflow-x-auto">
-                        <pre>@inproceedings{psa2025,
+                        <pre>@misc{li2025psapyramidsparseattention,
   title={PSA: Pyramid Sparse Attention for Efficient Video Understanding and Generation},
-  author={Li, Xiaolong and Gu, Youping and Lin, Xi and Wang, Weijie and Zhuang, Bohan},
-  booktitle={ICML},
-  year={2025}
+  author={Xiaolong Li and Youping Gu and Xi Lin and Weijie Wang and Bohan Zhuang},
+  year={2025},
+  eprint={2512.04025},
+  archivePrefix={arXiv},
+  primaryClass={cs.CV},
+  url={https://arxiv.org/abs/2512.04025},
 }</pre>
                     </div>
                     <div class="mt-8 flex justify-center gap-6">
-                        <a href="#" class="text-gray-500 hover:text-gray-800 transition-colors">
+                        <a href="https://arxiv.org/abs/2512.04025" target="_blank" class="text-gray-500 hover:text-red-500 transition-colors" title="Paper">
+                            <i class="fa-solid fa-file-pdf text-2xl"></i>
+                        </a>
+                        <a href="https://github.com/ziplab/Pyramid-Sparse-Attention" target="_blank" class="text-gray-500 hover:text-gray-800 transition-colors" title="Code">
                             <i class="fa-brands fa-github text-2xl"></i>
                         </a>
-                        <a href="#" class="text-gray-500 hover:text-gray-800 transition-colors">
-                            <i class="fa-solid fa-envelope text-2xl"></i>
+                        <a href="https://huggingface.co/GYP666/BLADE" target="_blank" class="text-gray-500 hover:text-yellow-500 transition-colors" title="Model Weights">
+                            <i class="fa-solid fa-cube text-2xl"></i>
                         </a>
                     </div>
                     <p class="text-gray-500 text-sm mt-6">
@@ -1098,43 +1094,46 @@
             observer.observe(el);
         });
 
-        // Video Generation Demo - Sync Play
-        const playVideosBtn = document.getElementById('play-videos-btn');
-        const baselineVideo = document.getElementById('baseline-video');
-        const oursVideo = document.getElementById('ours-video');
+        // Video Understanding - Small play button overlay
+        const understandingVideo = document.getElementById('understanding-video');
+        const videoOverlay = document.getElementById('video-overlay');
 
-        playVideosBtn.addEventListener('click', () => {
-            // Reset videos
-            baselineVideo.currentTime = 0;
-            oursVideo.currentTime = 0;
-
-            // Play both simultaneously
-            Promise.all([
-                baselineVideo.play().catch(() => {}),
-                oursVideo.play().catch(() => {})
-            ]);
-
-            playVideosBtn.innerHTML = '<i class="fa-solid fa-pause"></i> Playing...';
-
-            // Reset button when videos end
-            const handleEnd = () => {
-                playVideosBtn.innerHTML = '<i class="fa-solid fa-play"></i> Play Both Videos';
-            };
-
-            baselineVideo.addEventListener('ended', handleEnd, { once: true });
-            oursVideo.addEventListener('ended', handleEnd, { once: true });
+        videoOverlay.addEventListener('click', () => {
+            if (understandingVideo.paused) {
+                understandingVideo.play();
+                videoOverlay.style.opacity = '0';
+                videoOverlay.style.pointerEvents = 'none';
+            }
         });
 
-        // Video Understanding Demo - Latency Race
-        const startChatBtn = document.getElementById('start-chat-btn');
-        const baselineSpinner = document.getElementById('baseline-spinner');
-        const oursSpinnerContainer = document.getElementById('ours-spinner-container');
-        const baselineText = document.getElementById('baseline-text');
-        const oursText = document.getElementById('ours-text');
+        understandingVideo.addEventListener('pause', () => {
+            videoOverlay.style.opacity = '1';
+            videoOverlay.style.pointerEvents = 'auto';
+        });
 
-        const responseText = "The video shows a romantic scene of a couple walking together under a bright red umbrella during a rainy day. The reflections of their figures shimmer on the wet pavement, creating an atmospheric and cinematic visual. The umbrella's vibrant color contrasts beautifully with the gray, rainy environment.";
+        understandingVideo.addEventListener('ended', () => {
+            videoOverlay.style.opacity = '1';
+            videoOverlay.style.pointerEvents = 'auto';
+        });
 
-        function typeText(element, text, delay = 30) {
+        // Video Understanding Demo - Prefilling Race
+        const startUnderstandingBtn = document.getElementById('start-understanding-btn');
+
+        // Elements
+        const baselineProgress = document.getElementById('baseline-progress');
+        const psaProgress = document.getElementById('psa-progress');
+        const baselineStatus = document.getElementById('baseline-status');
+        const psaStatus = document.getElementById('psa-status');
+        const baselineAnswer = document.getElementById('baseline-answer');
+        const psaAnswer = document.getElementById('psa-answer');
+
+        const answerText = "Tom (eat duck), Jerry (save duck).";
+
+        // Timing: PSA is ~2.8x faster (based on 0.74 sparsity)
+        const baselineDuration = 2800; // 2.8s for baseline
+        const psaDuration = 1000; // 1.0s for PSA
+
+        function typeText(element, text, delay = 40) {
             return new Promise((resolve) => {
                 let index = 0;
                 element.classList.remove('hidden');
@@ -1157,32 +1156,71 @@
             });
         }
 
-        startChatBtn.addEventListener('click', async () => {
+        function animateProgress(progressEl, statusEl, answerEl, duration, onComplete) {
+            const startTime = Date.now();
+            const interval = 50; // Update every 50ms
+
+            statusEl.innerHTML = '<div class="spinner"></div><span class="text-indigo-600">Prefilling...</span>';
+
+            const timer = setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min((elapsed / duration) * 100, 100);
+
+                progressEl.style.width = progress + '%';
+
+                if (elapsed >= duration) {
+                    clearInterval(timer);
+                    progressEl.style.width = '100%';
+                    statusEl.innerHTML = '<i class="fa-solid fa-check text-emerald-500"></i><span class="text-emerald-600 font-medium">Complete!</span>';
+
+                    // Type the answer
+                    typeText(answerEl, answerText, 40).then(onComplete);
+                }
+            }, interval);
+
+            return timer;
+        }
+
+        let isRunning = false;
+
+        startUnderstandingBtn.addEventListener('click', async () => {
+            if (isRunning) return;
+            isRunning = true;
+
             // Reset
-            baselineSpinner.parentElement.classList.remove('hidden');
-            oursSpinnerContainer.classList.remove('hidden');
-            baselineText.classList.add('hidden');
-            oursText.classList.add('hidden');
-            baselineText.innerHTML = '';
-            oursText.innerHTML = '';
+            baselineProgress.style.width = '0%';
+            psaProgress.style.width = '0%';
+            baselineStatus.innerHTML = '<span class="text-gray-500">Ready</span>';
+            psaStatus.innerHTML = '<span class="text-gray-500">Ready</span>';
+            baselineAnswer.classList.add('hidden');
+            psaAnswer.classList.add('hidden');
+            baselineAnswer.innerHTML = '';
+            psaAnswer.innerHTML = '';
 
-            startChatBtn.disabled = true;
-            startChatBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Running...';
+            startUnderstandingBtn.disabled = true;
+            startUnderstandingBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Racing...';
 
-            // Ours: Fast response (0.5s spinner, then type)
-            setTimeout(async () => {
-                oursSpinnerContainer.classList.add('hidden');
-                await typeText(oursText, responseText, 25);
-            }, 500);
+            let psaComplete = false;
+            let baselineComplete = false;
 
-            // Baseline: Slow response (3s spinner, then type)
-            setTimeout(async () => {
-                baselineSpinner.parentElement.classList.add('hidden');
-                await typeText(baselineText, responseText, 25);
+            const checkComplete = () => {
+                if (psaComplete && baselineComplete) {
+                    isRunning = false;
+                    startUnderstandingBtn.disabled = false;
+                    startUnderstandingBtn.innerHTML = '<i class="fa-solid fa-bolt"></i> Start Prefilling Race';
+                }
+            };
 
-                startChatBtn.disabled = false;
-                startChatBtn.innerHTML = '<i class="fa-solid fa-bolt"></i> Start Latency Race';
-            }, 3000);
+            // Start both animations simultaneously
+            animateProgress(psaProgress, psaStatus, psaAnswer, psaDuration, () => {
+                psaComplete = true;
+                checkComplete();
+            });
+
+            animateProgress(baselineProgress, baselineStatus, baselineAnswer, baselineDuration, () => {
+                baselineComplete = true;
+                checkComplete();
+            });
         });
     </script>
 </body>
