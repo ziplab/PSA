@@ -595,7 +595,7 @@
                         </p>
                         <div class="bg-white/50 rounded-xl p-4 mt-4 text-center">
                             <p class="text-sm text-gray-700">
-                                $K_i^{h+1} = \text{MeanPool}(K_i^{h}, 2, 2)$
+                                $K_i^{h+1} = \mathtt{MeanPool}(K_i^{h}, 2, 2)$
                             </p>
                         </div>
                         <p class="text-gray-600 text-sm leading-relaxed mt-4">
@@ -652,9 +652,9 @@
                                 <div class="flex"><span class="line-number">6</span><span class="pl-12">$h \gets M_{ij}$</span></div>
                                 <div class="flex"><span class="line-number">7</span><span class="pl-12"><span class="keyword">if</span> $h = 0$ <span class="keyword">then continue</span> <span class="comment">// Skip pruned</span></span></div>
                                 <div class="flex"><span class="line-number">8</span><span class="pl-12">$S_{ij} \gets Q_i K_j^{h\top} / \sqrt{d} + (h-1)\ln 2$</span></div>
-                                <div class="flex"><span class="line-number">9</span><span class="pl-12">$m_{ij} \gets \max(\text{rowmax}(S_{ij}), m_i)$</span></div>
+                                <div class="flex"><span class="line-number">9</span><span class="pl-12">$m_{ij} \gets \max(\mathtt{rowmax}(S_{ij}), m_i)$</span></div>
                                 <div class="flex"><span class="line-number">10</span><span class="pl-12">$P_{ij} \gets \exp(S_{ij} - m_{ij})$</span></div>
-                                <div class="flex"><span class="line-number">11</span><span class="pl-12">$l_{ij} \gets l_i \exp(m_i - m_{ij}) + \text{rowsum}(P_{ij})$</span></div>
+                                <div class="flex"><span class="line-number">11</span><span class="pl-12">$l_{ij} \gets l_i \exp(m_i - m_{ij}) + \mathtt{rowsum}(P_{ij})$</span></div>
                                 <div class="flex"><span class="line-number">12</span><span class="pl-12">$o_i \gets o_i \exp(m_i - m_{ij}) + P_{ij} V_j^h$</span></div>
                                 <div class="flex"><span class="line-number">13</span><span class="pl-12">$m_i \gets m_{ij}$, $l_i \gets l_{ij}$</span></div>
                                 <div class="flex"><span class="line-number">14</span><span class="pl-6"><span class="keyword">end for</span></span></div>
@@ -675,11 +675,11 @@
                             <div class="space-y-1">
                                 <div class="flex"><span class="line-number">1</span><span><span class="keyword">Input:</span> Importance map $S$, thresholds $T=\{\tau_1,\dots,\tau_H\}$</span></div>
                                 <div class="flex"><span class="line-number">2</span><span><span class="keyword">Output:</span> Multi-level mask $M$</span></div>
-                                <div class="flex"><span class="line-number">3</span><span>$M \gets \text{zeros\_like}(S)$</span></div>
+                                <div class="flex"><span class="line-number">3</span><span>$M \gets \mathtt{zeros\_like}(S)$</span></div>
                                 <div class="flex"><span class="line-number">4</span><span><span class="keyword">for</span> $i = 1$ <span class="keyword">to</span> $n_q$ <span class="keyword">do</span></span></div>
                                 <div class="flex"><span class="line-number">5</span><span class="pl-6">$E_i \gets S_i / \sum_j S_{ij}$ <span class="comment">// Normalize row</span></span></div>
-                                <div class="flex"><span class="line-number">6</span><span class="pl-6">$(E_i', \pi_i) \gets \text{sort\_desc}(E_i)$</span></div>
-                                <div class="flex"><span class="line-number">7</span><span class="pl-6">$\hat{E}_i \gets \text{cumsum}(E_i')$</span></div>
+                                <div class="flex"><span class="line-number">6</span><span class="pl-6">$(E_i', \pi_i) \gets \mathtt{sort\_desc}(E_i)$</span></div>
+                                <div class="flex"><span class="line-number">7</span><span class="pl-6">$\hat{E}_i \gets \mathtt{cumsum}(E_i')$</span></div>
                                 <div class="flex"><span class="line-number">8</span><span class="pl-6"><span class="keyword">for</span> $j = 1$ <span class="keyword">to</span> $n_k$ <span class="keyword">do</span></span></div>
                                 <div class="flex"><span class="line-number">9</span><span class="pl-12">$j' \gets \pi_i(j)$ <span class="comment">// Map to sorted index</span></span></div>
                                 <div class="flex"><span class="line-number">10</span><span class="pl-12"><span class="keyword">if</span> $\hat{E}_{ij'} > \tau_H$ <span class="keyword">then</span></span></div>
